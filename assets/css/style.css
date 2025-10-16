@@ -161,3 +161,72 @@ footer .design_dedicate {
     font-weight: 300;
     line-height: normal;
 }
+
+/* PAGES */
+
+h1 {
+    color: var(--Black, #141414);
+    text-align: center;
+    font-size: 48px;
+    font-style: italic;
+    font-weight: 800;
+    line-height: normal;
+}
+
+h1 span {
+    color: var(--Black, #141414);
+    font-size: 48px;
+    font-style: italic;
+    font-weight: 800;
+    line-height: normal;
+    text-decoration-line: underline;
+    text-decoration-style: wavy;
+    text-decoration-skip-ink: auto;
+    text-decoration-color: #FFB700;
+    text-decoration-thickness: 20%;
+    text-underline-offset: auto;
+    text-underline-position: from-font;
+}
+
+/* BARRE DE RECHERCHE */
+
+div.search {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+div.search .bar {
+    display: flex;
+    width: 400px;
+    padding: 8px 15px;
+    align-items: center;
+    gap: 10px;
+    border-radius: 15px;
+    background-color: #FFFFFF;
+}
+
+div.search .bar input {
+    width: 336px;
+    border: none;
+    font-family: 'Inter';
+    outline: none
+}
+
+div.search .examples {
+    color: #868686;
+    text-align: center;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+div.search .examples span {
+    color: var(--Gray, #868686);
+    font-size: 10px;
+    font-style: italic;
+    font-weight: 500;
+    line-height: normal;
+}

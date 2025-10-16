@@ -11,6 +11,19 @@
     <?php
     include_once("includes/navbar.php");
     ?>
+
+    <h1>Trouvez le plat <span>parfait</span></h1>
+
+    <div class="search">
+        <div class="bar">
+            <span class="material-symbols-outlined">search</span>
+            <input type="text" placeholder="Chercher une recette">
+        </div>
+        <div class="examples">
+            Essayez: <span>‘blanquette de veau’</span> ou <span>‘tarte aux pommes’</span>
+        </div>
+    </div>
+
     <?php
     include_once("includes/footer.php");
     ?>
