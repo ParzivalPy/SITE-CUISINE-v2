@@ -263,5 +263,77 @@ div.search .examples span {
 .filters .box .filters-icon > span + .filters .box .filters-icon {
     width: 18px;
     height: 18px;
-    
+}
+
+/* RECIPE TEMPLATE */
+
+.recipe-template {
+    background-color: #FFFFFF;
+    min-width: 500px;
+    border-radius: 15px;
+    padding: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 25px;
+    flex: 1 0 0;
+}
+
+.recipe-template > img {
+    width: 200px;
+    height: 200px;
+    aspect-ratio: 1/1;
+    border: none;
+    background-color: #CACACA;
+    align-self: stretch;
+    border-radius: 10px;
+}
+
+.recipe-template .informations .informations-up {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    align-self: stretch;
+    gap: 15px;
+}
+
+.recipe-template .informations .informations-up .titre {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    flex: 1 0 0;
+}
+
+.recipe-template .informations .informations-up .titre > div:first-child {
+    color: #141414;
+    font-size: 32px;
+    font-style: normal;
+    font-weight: 800;
+    line-height: 30px;
+}
+
+.recipe-template .informations .informations-up .titre > div:last-child {
+    color: #868686;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.recipe-template .informations .informations-up .titre > div:last-child > span {
+    color: #141414;
+    font-size: 12px;
+    font-style: italic;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.recipe-template .informations .informations-up .preparation-time {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    border-radius: 2px;
+    background: #E7E7E7;
 }

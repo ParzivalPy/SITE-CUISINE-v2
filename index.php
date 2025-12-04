@@ -1,3 +1,7 @@
+<?php
+require_once(__DIR__ . '/includes/db.php');
+?>
+
 <!DOCTYPE html>
 <html lang="fr-FR">
 <head>
@@ -45,7 +49,35 @@
             </div>
         </div>
     </div>
+    <div class="recipes">
+        <?php
+        $conn = connectToDb();
+        $recipes = scrapRecipe(10, $conn);
+        foreach ($recipes as $recipe):
+        ?>
+        <div class="recipe-template">
+            <img src="assets\images\PXL_20251017_121440361.jpg">
+            <div class="informations">
+                <div class="informations-up">
+                    <div class="titre">
+                        <div>
+                            <?php echo $recipe['title']; ?>
+                        </div>
+                        <div>
+                            Recette par <span>John Doe</span>
+                        </div>
+                    </div>
+                    <div class="preparation-time">
+                        20'
+                    </div>
+                </div>
+                <div class="informations-down">
 
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
     <?php
     include_once("includes/footer.php");
     ?>
