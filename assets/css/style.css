@@ -130,7 +130,6 @@
     width: 200px;
     align-self: stretch;
     border-radius: 10px;
-    background-image: url("https://www.simplyrecipes.com/thmb/4rVYqq80fd-kHTx25yKtd8bvHzA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/Simply-Pasta-Carbonara-LEAD-4-3c433b3057e7465b8738b43de762df06.jpg");
     background-size: cover;
 }
 
@@ -223,7 +222,6 @@
 }
 
 .informations .down .categories .categorie img {
-    border: solid 3px #000000;
     border-radius: 3px;
 }
 
@@ -247,4 +245,35 @@
     display: flex;
     align-items: center;
     gap: 5px;
+}
+
+/** -------------------------------------
+             FIN DES RECETTES
+--------------------------------------**/
+
+.fin-resultats {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    align-self: stretch;
+}
+
+.fin-resultats .h1 {
+    color: var(--Black, #141414);
+    font-family: Inter;
+    font-size: 20px;
+    font-style: italic;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.fin-resultats .h2 {
+    color: var(--Gray, #868686);
+    text-align: center;
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
 }

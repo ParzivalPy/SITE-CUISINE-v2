@@ -1,3 +1,8 @@
+<?php
+error_reporting(E_ALL);
+ini_set('display_errors',1);
+?>
+
 <!DOCTYPE html>
 <html lang="fr-FR">
 <head>
@@ -14,6 +19,12 @@
 <body>
     <?php
     include_once("includes/navbar.php");
+    include_once("includes/db.php");
+
+    $search = isset($_GET['search']) ? $_GET['search'] : '';
+    $conn = connect_to_database($host, $username, $password, "cuisine_base");
+    $recipesResult = request_database($conn, "SELECT r.*, p.pseudo AS author_pseudo FROM recettes r LEFT JOIN profils p ON r.id_author = p.id WHERE r.title LIKE '%" . $conn->real_escape_string($search) . "%'");
+    $recipes = $recipesResult->fetch_all(MYSQLI_ASSOC);
     ?>
     <div class="menu">
         <div class="header">
@@ -45,322 +56,63 @@
             </div>
         </div>
     </div>
-
     <div class="recipe-grid">
+        <?php foreach ($recipes as $recipe): ?>
         <div class="recipe">
-            <div class="photo"></div>
+            <div class="photo" style="background-image: url('https://www.simplyrecipes.com/thmb/4rVYqq80fd-kHTx25yKtd8bvHzA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/Simply-Pasta-Carbonara-LEAD-4-3c433b3057e7465b8738b43de762df06.jpg');"></div>
             <div class="informations">
                 <div class="up">
                     <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
+                        <div class="title"><?php echo $recipe['title']; ?></div>
+                        <div class="author">Recette par <span>
+                        <?php 
+                        echo $recipe['author_pseudo'] ?? 'Auteur inconnu';
+                        ?></span></div>
                     </div>
-                    <div class="time">20'</div>
+                    <div class="time"><?php echo $recipe['prep_time'] + $recipe['baking_time']; ?>'</div>
                 </div>
                 <div class="down">
                     <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
+                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span><p><?php echo $recipe['category']; ?></p></div>
+                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span><p>Difficulté : 
+                            <?php 
+                            $diff = $recipe['difficulty']; 
+                            switch ($diff) {
+                                case 1:
+                                    echo "Facile";
+                                    break;
+                                case 2:
+                                    echo "Moyenne";
+                                    break;
+                                case 3:
+                                    echo "Difficile";
+                                    break;
+                                default:
+                                    echo "Inconnue";
+                            }
+                            ?></p></div>
+                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo strtolower($recipe['origin']); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo $pays[$recipe['origin']] ?? 'Inconnue'; ?></div>
                     </div>
                     <div class="buttons">
                         <div class="button-recipe">
                             <span class="material-symbols-outlined">arrow_forward</span>Recette
                         </div>
                         <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
+                            <span class="material-symbols-outlined">favorite</span>
+                            <?php
+                            $likes = request_database($conn, "SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = " . intval($recipe['id']));
+                            echo $likes->fetch_assoc()['like_count'];
+                            ?>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span>Plat</div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span>Difficulté : Facile</div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div><div class="recipe">
-            <div class="photo"></div>
-            <div class="informations">
-                <div class="up">
-                    <div class="titleandauthor">
-                        <div class="title">L'authentique Carbonara</div>
-                        <div class="author">Recette par <span>John Doe</span></div>
-                    </div>
-                    <div class="time">20'</div>
-                </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span><p>Plat</p></div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span><p>Difficulté : Facile</p></div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" width="24" style="border: solid 2px #000000; border-radius: 3px; padding: 1px; margin: 1px;"/>Italie</div>
-                    </div>
-                    <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
-                        <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>35
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php endforeach; ?>
+    </div>
+    <div class="fin-resultats">
+        <div class="h1">Les résultats s'arrêtent là...</div>
+        <div class="h2">Une recette manquante ? Ajoutez-là pour que tout le monde puisse en profiter !</div>
     </div>
 
     <?php
