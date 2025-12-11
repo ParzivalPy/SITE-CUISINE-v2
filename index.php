@@ -9,7 +9,7 @@ ini_set('display_errors',1);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gab'recettes</title>
-    <link rel="stylesheet" href="assets\css\style.css">
+    <link rel="stylesheet" href="assets\css\index.css">
     <link rel="stylesheet" href="assets\css\nav-foo.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

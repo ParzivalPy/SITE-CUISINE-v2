@@ -1,0 +1,375 @@
+.body {
+    display: flex;
+    width: 100%;
+    padding: 41px 100px;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+    background: var(--Light, #E7E7E7);
+}
+
+.center-container {
+    display: flex;
+    flex-direction: column;
+    gap: 50px;
+    align-items: center;
+}
+
+.profil {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.profil .photo {
+    display: flex;
+    width: 96px;
+    height: 96px;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 10px;
+    aspect-ratio: 1/1;
+    border-radius: var(--Round-Radius, 999px);
+    background: lightgray 50% / cover no-repeat, var(--White, #FFF);
+    background-size: cover;
+}
+
+.profil .photo .add_photo {
+    display: flex;
+    padding: 5px;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    right: -6px;
+    bottom: -6px;
+    border-radius: var(--Round-Radius, 999px);
+    background: var(--Light, #E7E7E7);
+}
+
+.profil .photo .add_photo_sub {
+    display: flex;
+    padding: 5px;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--Round-Radius, 999px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.profil .photo .add_photo_sub span {
+    font-size: 13.5px;
+}
+
+.profil .infos {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
+.profil .infos .pseudo {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.profil .infos .pseudo .actual {
+    color: var(--Black, #141414);
+    text-align: center;
+    font-family: Inter;
+    font-size: 48px;
+    font-style: oblique;
+    font-weight: 800;
+    line-height: normal;
+}
+
+.profil .infos .pseudo .modify {
+    display: flex;
+    padding: 5px;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--Round-Radius, 999px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.profil .infos .pseudo .modify span {
+    font-size: 18px;
+}
+
+.profil .infos .min_infos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.profil .infos .min_infos .point {
+    width: 4px;
+    height: 4px;
+    border-radius: var(--Round-Radius, 999px);
+    background: var(--Dark-Gray, #2B2B2B);
+}
+
+.profil .infos .min_infos .time_membership {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.profil .infos .min_infos .number_recipes {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-skip-ink: auto;
+    text-decoration-color: var(--Dark-Gray, #2B2B2B);
+    text-decoration-thickness: auto;
+    text-underline-offset: auto;
+    text-underline-position: from-font;
+}
+
+.profil .infos .min_infos .number_likes {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    text-decoration-line: underline;
+    text-decoration-style: solid;
+    text-decoration-skip-ink: auto;
+    text-decoration-color: var(--Dark-Gray, #2B2B2B);
+    text-decoration-thickness: auto;
+    text-underline-offset: auto;
+    text-underline-position: from-font;
+}
+
+.profil .logout {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.profil .logout .logout-text {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
+
+
+
+
+
+
+
+
+
+
+.private-info {
+    display: flex;
+    max-width: 600px;
+    padding: 15px;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    align-self: stretch;
+    border-radius: var(--Large-Radius, 15px);
+    background: var(--White, #FFF);
+}
+
+.private-info .zone-name {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    align-self: stretch;
+}
+
+.private-info .zone-name span {
+    font-size: 36px;
+}
+
+.private-info .zone-name .my-private-info {
+    color: var(--Dark-Gray, #2B2B2B);
+    text-align: center;
+    font-family: Inter;
+    font-size: 16px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.private-info .zone-name .not-public-text {
+    color: var(--Gray, #868686);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.ruler {
+    width: 200px;
+    height: 1px;
+    background: var(--Light-Gray, #CACACA);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    align-self: stretch;
+}
+
+.header {
+    color: var(--Dark-Gray, #2B2B2B);
+    text-align: center;
+    font-family: Inter;
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    text-transform: uppercase;
+}
+
+.info-item .info-box {
+    display: flex;
+    padding: 10px;
+    align-items: center;
+    gap: 10px;
+    align-self: stretch;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light, #E7E7E7);
+}
+
+.info-item .info-box input {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    border: none;
+    background: transparent;
+}
+
+.personnal-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    align-self: stretch;
+}
+
+.personnal-info .nom {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    flex: 1 0 0;
+}
+
+.personnal-info .info-box {
+    display: flex;
+    padding: 10px;
+    align-items: center;
+    gap: 10px;
+    align-self: stretch;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light, #E7E7E7);
+}
+
+.personnal-info .info-box input {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    background-color: transparent;
+    border: none;
+}
+
+.save-info {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--Small-Radius, 5px);
+    opacity: 0.5;
+    background: #FFB700;
+}
+
+.save-info span {
+    font-size: 24px;
+}
+
+.save-info div {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.account-management {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    align-self: stretch;
+}
+
+.account-management .delete-text {
+    color: var(--Gray, #868686);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.account-management .delete-text span {
+    color: var(--Dark-Gray, #2B2B2B);
+}
+
+.account-management .delete-button {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.account-management .delete-button span {
+    font-size: 24px;
+}
+
+.account-management .delete-button div {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
