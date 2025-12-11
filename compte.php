@@ -31,6 +31,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pseudo'])) {
+    if ($_POST['first_name'] !== $_SESSION['LOGGED_USER']['first_name']) {
+        update_user_info('pseudo', $_POST['pseudo'] ?? '', $host, $username, $password);
+        $_SESSION['LOGGED_USER']['pseudo'] = $_POST['pseudo'] ?? '';
+    }
+    header("Location: compte.php");
+    exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] === 0) {
+    $uploadDir = 'assets/img';
+    $filename = basename($_FILES['profile_picture']['name']);
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    $targetFilePath = $uploadDir . '/' . $_SESSION['LOGGED_USER']['id'] . '.' . $extension;
+    if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetFilePath)) {
+        $conn = connect_to_database($host, $username, $password, "cuisine_base");
+        $userId = intval($_SESSION['LOGGED_USER']['id']);
+        $escapedFilePath = $conn->real_escape_string($targetFilePath);
+        $conn->close();
+        echo "<script>alert('Image de profil mise à jour avec succès');</script>";
+    } else {
+        echo "<script>alert('Erreur lors du téléchargement de l\'image');</script>";
+    }
+    
+    header("Location: compte.php");
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
 
     echo "<script>alert('Votre compte va être supprimé définitivement');</script>";
@@ -93,7 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                                 <input type="password" id="password" name="password" value="">
                             </div>
                         </div>
-                        <input type="submit" class="save-info" value="Se connecter">
+                        <input type="submit"  class="save-info" style="border:none;cursor:pointer;" value="Se connecter">
                     </div>
                 </form>
             </div>
@@ -140,13 +168,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         ?>
         <div class="center-container">
             <div class="info-bloc profil">
-                <div class="photo" style="background-image: url('https://www.simplyrecipes.com/thmb/4rVYqq80fd-kHTx25yKtd8bvHzA=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/Simply-Pasta-Carbonara-LEAD-4-3c433b3057e7465b8738b43de762df06.jpg');">
-                    <div class="add_photo"><div class="add_photo_sub"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
+                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['id']); ?>.jpeg');">
+                    <div class="add_photo"><div class="add_photo_sub" id="btn-modify-img" style="cursor: pointer;"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
+                    <div class="img-modify" id="photo_form">
+                        <div class="img-title"><span class="material-symbols-outlined">edit</span> Changer la photo de profil</div>
+                        <form action="compte.php" method="post" enctype="multipart/form-data">
+                            <input type="file" name="profile_picture" accept="image/*" required>
+                            <input type="submit" value="Valider l'image" name="submit-image" id="submit-image">
+                            <script>
+                                document.querySelector('input[name="profile_picture"]').addEventListener('change', function(e) {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = function(event) {
+                                            document.getElementById('previewImg').src = event.target.result;
+                                            document.getElementById('previewImg').style.display = 'block';
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                });
+
+                                document.getElementById('btn-modify-img').addEventListener('click', function() {
+                                    const input = document.querySelector('.img-modify');
+                                    
+                                    if (input.style.display == 'flex') {
+                                        input.style.display = 'none';
+                                    } else {
+                                        input.style.display = 'flex';
+                                    }
+                                });
+                            </script>
+                        </form>
+                        <div class="img-preview">
+                            <img id="previewImg" src="#" alt="Aperçu de l'image" style="display:none; max-width: 100%; height: auto; margin-top: 10px;">
+                            <div class="filter"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="infos">
                     <div class="pseudo">
                         <div class="actual"><?php echo htmlspecialchars($_SESSION['LOGGED_USER']['pseudo']); ?></div>
-                        <div class="modify"><span class="material-symbols-outlined">edit</span></div>
+                        <form method="POST" style="display:block;">
+                            <input type="text" autocomplete="off" name="pseudo" class="pseudo-input actual" style="display:none; background-color: transparent; outline: none; border: none; border-bottom: 2px solid black; border-radius: 3px" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['pseudo']); ?>">
+                        </form>
+                        <div class="modify" style="cursor: pointer;"><span class="material-symbols-outlined">edit</span></div>
+                        <script>
+                            document.querySelector('.modify').addEventListener('click', function() {
+                                const actual = document.querySelector('.pseudo .actual');
+                                const input = document.querySelector('.pseudo-input');
+                                
+                                if (input.style.display === 'none') {
+                                    actual.style.display = 'none';
+                                    input.style.display = 'block';
+                                    input.focus();
+                                } else {
+                                    actual.style.display = 'block';
+                                    input.style.display = 'none';
+                                }
+                            });
+                        </script>
                     </div>
                     <div class="min_infos">
                         <div class="time_membership">Membre depuis <?php echo date('d/m/Y', strtotime($beginning)); ?></div>
@@ -177,20 +257,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                         <?php if (!isset($_SESSION['LOGGED_USER']['email'])): ?>
                         <span class="material-symbols-outlined" style="color: #FF0000">emergency_home</span>
                         <?php endif; ?>
-                        <input name="email" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['email']); ?>">
+                        <input autocomplete="off" name="email" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['email']); ?>">
                     </div>
                 </div>
                 <div class="personnal-info">
                     <div class="nom">
                         <div class="header">prénom</div>
                         <div class="info-box">
-                            <input name="first_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['first_name']); ?>">
+                            <input autocomplete="off" name="first_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['first_name']); ?>">
                         </div>
                     </div>
                     <div class="nom">
                     <div class="header">nom</div>
                         <div class="info-box">
-                            <input name="last_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['last_name']); ?>">
+                            <input autocomplete="off" name="last_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['last_name']); ?>">
                         </div>
                     </div>
                 </div>
