@@ -6,6 +6,7 @@
     align-items: center;
     gap: 50px;
     background: var(--Light, #E7E7E7);
+    align-self: stretch;
 }
 
 .center-container {
@@ -161,6 +162,7 @@
     gap: 10px;
     border-radius: var(--Small-Radius, 5px);
     background: var(--Light-Gray, #CACACA);
+    border: none;
 }
 
 .profil .logout .logout-text {

@@ -18,4 +18,11 @@ function request_database($conn, $query) {
     }
     return $result;
 }
+
+function update_user_info($field, $value, $host, $username, $password) {
+    $conn = connect_to_database($host, $username, $password, "cuisine_base");
+    $return = request_database($conn, "UPDATE profils SET " . $field . " = '" . $conn->real_escape_string($value) . "' WHERE id = " . intval($_SESSION['LOGGED_USER']['id']));
+    $conn->close();
+    return $return;
+}
 ?>
