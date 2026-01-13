@@ -84,6 +84,10 @@
     font-style: oblique;
 }
 
+/** -------------------------------------
+             FILTRES RAPIDES
+--------------------------------------**/
+
 .menu .filters {
    display: flex;
     justify-content: center;
@@ -100,6 +104,129 @@
     gap: 5px;
     border-radius: 999px;
     background: var(--Light-Gray, #CACACA);
+}
+
+/** -------------------------------------
+             FILTRES
+--------------------------------------**/
+
+.filter-extend {
+    display: none;
+    width: 350px;
+    max-width: 350px;
+    padding: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    border-radius: var(--Large-Radius, 15px);
+    background: var(--White, #FFF);
+    box-shadow: 0 4px 4px 0 rgba(43, 43, 43, 0.25);
+    margin-top: 10px;
+}
+
+.filter-extend .filter-title {
+    color: var(--Black, #141414);
+    font-family: Inter;
+    font-size: 18px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+}
+
+.filter-extend .research-origins {
+    display: flex;
+    padding: 5px 10px;
+    align-items: center;
+    gap: 5px;
+    align-self: stretch;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light, #E7E7E7);
+}
+
+.filter-extend .research-origins span {
+    font-size: 16px;
+    color: var(--Gray, #868686);
+}
+
+.filter-extend .research-origins input {
+    color: var(--Gray, #868686);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    line-height: normal;
+    background-color: transparent;
+    border: none;
+    outline: none;
+}
+
+.filter-extend .proposed-origins {
+    display: flex;
+    align-items: flex-start;
+    align-content: flex-start;
+    gap: 5px;
+    align-self: stretch;
+    flex-wrap: wrap;
+}
+
+.filter-extend .proposed-origins .proposed-origin {
+    display: flex;
+    padding: 2px 10px 2px 8px;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    border-radius: var(--Round-Radius, 999px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.filter-extend .filter-buttons {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 15px;
+    align-self: stretch;
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+}
+
+.filter-extend .filter-buttons .clear-button {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex: 1 0 0;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Light-Gray, #CACACA);
+}
+
+.filter-extend .filter-buttons .apply-button {
+    display: flex;
+    padding: 5px 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex: 1 0 0;
+    border-radius: var(--Small-Radius, 5px);
+    background: var(--Main, #FFB700);
+}
+
+.filter-extend .filter-buttons span.text-button {
+    color: var(--Dark-Gray, #2B2B2B);
+    font-family: Inter;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    line-height: normal;
+    height: 24px;
+}
+
+.filter-extend .filter-buttons span.material-symbols-outlined {
+    font-size: 24px;
 }
 
 /** -------------------------------------
@@ -202,7 +329,7 @@
     align-self: stretch;
 }
 
-.informations .down .categories {
+.categories {
     display: flex;
     align-items: flex-start;
     gap: 5px;
@@ -210,7 +337,7 @@
     flex-wrap: wrap;
 }
 
-.informations .down .categories .categorie {
+.categories .categorie {
     display: flex;
     padding: 2px 10px 2px 8px;
     justify-content: center;
@@ -221,7 +348,7 @@
     flex-wrap: nowrap;
 }
 
-.informations .down .categories .categorie img {
+.categories .categorie img {
     border-radius: 3px;
 }
 
