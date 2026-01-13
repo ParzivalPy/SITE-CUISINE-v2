@@ -1,2 +1,3 @@
 /includes/secret.php
 /api/config
+.env
