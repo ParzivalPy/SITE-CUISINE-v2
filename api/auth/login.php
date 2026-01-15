@@ -38,11 +38,6 @@ if (!$user || !password_verify($password, $user['password'])) {
 
 $payload = [
     'user_id' => $user['id'],
-    'email' => $email,
-    'first_name' => $user['first_name'],
-    'last_name' => $user['last_name'],
-    'pseudo' => $user['pseudo'],
-    'beginning' => $user['beginning'],
     'iat' => time(),
     'nbf' => time(),
     'exp' => time() + 3600,
@@ -60,14 +55,6 @@ if (!$secret) {
 $jwt = JWT::encode($payload, $secret, 'HS256');
 
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
-
-setcookie('token', $jwt, [
-    'expires' => time() + 3600,
-    'path' => '/',
-    'httponly' => true,
-    'samesite' => 'Lax',
-    'secure' => $secure,
-]);
 
 echo json_encode(['success' => true, 'token' => $jwt]);
 

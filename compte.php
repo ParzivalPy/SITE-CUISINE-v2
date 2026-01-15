@@ -2,6 +2,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors',1);
 
+require_once("api/config/database.php");
 
 session_start();
 
@@ -10,13 +11,15 @@ $middlewarePath = __DIR__ . '/api/auth/middleware.php';
 if (file_exists($middlewarePath)) {
     $returned = require_once $middlewarePath;
     if (is_array($returned) || is_object($returned)) {
-        $user = $returned;
+        $pdo = getDatabaseConnection();
+        $user = $pdo->query("SELECT * FROM profils WHERE id = " . intval($returned->user_id))->fetch();
     }
 }
 
-if (!isset($_SESSION['LOGGED_USER']) && !isset($_SERVER['HTTP_AUTHORIZATION']) && !$user) {
-    header('Location: index.php');
-    exit;
+$haveToConnect = false;
+
+if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $haveToConnect = true;
 }
 
 $_SESSION['page'] = 'compte.php';
@@ -25,22 +28,24 @@ include_once("includes/db.php");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     session_destroy();
+    setcookie('token', '', time() - 3600, '/', '', false, true);
     header("Location: compte.php");
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
-    if ($_POST['first_name'] !== $_SESSION['LOGGED_USER']['first_name']) {
-        update_user_info('first_name', $_POST['first_name'] ?? '', $host, $username, $password);
-        $_SESSION['LOGGED_USER']['first_name'] = $_POST['first_name'] ?? '';
+    $pdo = getDatabaseConnection();
+    if ($_POST['first_name'] !== $user['first_name']) {
+        $update = $pdo->prepare("UPDATE profils SET first_name = :first_name WHERE id = :id")->execute(['first_name' => $_POST['first_name'] ?? '','id' => $user['id']]);
+        $user['first_name'] = $_POST['first_name'] ?? '';
     }
-    if ($_POST['last_name'] !== $_SESSION['LOGGED_USER']['last_name']) {
-        update_user_info('last_name', $_POST['last_name'] ?? '', $host, $username, $password);
-        $_SESSION['LOGGED_USER']['last_name'] = $_POST['last_name'] ?? '';
+    if ($_POST['last_name'] !== $user['last_name']) {
+        $update = $pdo->prepare("UPDATE profils SET last_name = :last_name WHERE id = :id")->execute(['last_name' => $_POST['last_name'] ?? '','id' => $user['id']]);
+        $user['last_name'] = $_POST['last_name'] ?? '';
     }
-    if ($_POST['email'] !== $_SESSION['LOGGED_USER']['email']) {
-        update_user_info('email', $_POST['email'] ?? '', $host, $username, $password);
-        $_SESSION['LOGGED_USER']['email'] = $_POST['email'] ?? '';
+    if ($_POST['email'] !== $user['email']) {
+        $update = $pdo->prepare("UPDATE profils SET email = :email WHERE id = :id")->execute(['email' => $_POST['email'] ?? '','id' => $user['id']]);
+        $user['email'] = $_POST['email'] ?? '';
     }
     echo "<script>alert('Information updated successfully');</script>";
     header("Location: compte.php");
@@ -48,9 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pseudo'])) {
-    if ($_POST['first_name'] !== $_SESSION['LOGGED_USER']['first_name']) {
-        update_user_info('pseudo', $_POST['pseudo'] ?? '', $host, $username, $password);
-        $_SESSION['LOGGED_USER']['pseudo'] = $_POST['pseudo'] ?? '';
+    $pdo = getDatabaseConnection();
+    if ($_POST['pseudo'] !== $user['pseudo']) {
+        $update = $pdo->prepare("UPDATE profils SET pseudo = :pseudo WHERE id = :id")->execute(['pseudo' => $_POST['pseudo'] ?? '','id' => $user['id']]);
+        $user['pseudo'] = $_POST['pseudo'] ?? '';
     }
     header("Location: compte.php");
     exit();
@@ -60,10 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
     $uploadDir = 'assets/img';
     $filename = basename($_FILES['profile_picture']['name']);
     $extension = pathinfo($filename, PATHINFO_EXTENSION);
-    $targetFilePath = $uploadDir . '/' . $_SESSION['LOGGED_USER']['id'] . '.' . $extension;
+    $targetFilePath = $uploadDir . '/' . $user['id'] . '.' . $extension;
     if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetFilePath)) {
         $conn = connect_to_database($host, $username, $password, "cuisine_base");
-        $userId = intval($_SESSION['LOGGED_USER']['id']);
+        $userId = intval($user["id"]);
         $escapedFilePath = $conn->real_escape_string($targetFilePath);
         $conn->close();
         echo "<script>alert('Image de profil mise à jour avec succès');</script>";
@@ -76,11 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
+    $pdo = getDatabaseConnection();
 
     echo "<script>alert('Votre compte va être supprimé définitivement');</script>";
 
     $conn = connect_to_database($host, $username, $password, "cuisine_base");
-    $userId = intval($_SESSION['LOGGED_USER']['id']);
+    $userId = intval($user['id']);
 
     request_database($conn, "DELETE FROM recettes WHERE id_author = $userId");
     request_database($conn, "DELETE FROM likes WHERE id_author = $userId");
@@ -112,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
     include_once("includes/navbar.php");
     ?>
     <div class="body">
-        <?php if(!isset($_SESSION['LOGGED_USER']['email'])): ?>
+        <?php if($haveToConnect): ?>
         <div class="body">
             <div class="center-container">
                 <form action="compte.php" method="post">
@@ -143,48 +150,73 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
             </div>
         </div>
         <?php
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $mail = isset($_POST['mail']) ? $_POST['mail'] : '';
-            $user_password = isset($_POST['password']) ? $_POST['password'] : '';
-            $hashed_password = password_hash($user_password, PASSWORD_DEFAULT);
-            
-            $conn = connect_to_database($host, $username, $password, "cuisine_base");
 
-            $profile= request_database($conn, "SELECT * FROM profils WHERE email = '" . $conn->real_escape_string($mail) . "'")->fetch_assoc();
-            global $num_recipes;
-            global $num_likes;
-            $num_recipes = request_database($conn, "SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . intval($profile['id']))->fetch_assoc()['count'];
-            $num_likes = request_database($conn, "SELECT COUNT(*) AS count FROM likes WHERE id_author = " . intval($profile['id']))->fetch_assoc()['count'];
-            $conn->close();
-            
-            if ($profile && password_verify($user_password, $profile['password'])) {
-                $_SESSION['LOGGED_USER']['email'] = $profile['email'];
-                $_SESSION['LOGGED_USER']['id'] = $profile['id'];
-                $_SESSION['LOGGED_USER']['first_name'] = $profile['first_name'];
-                $_SESSION['LOGGED_USER']['last_name'] = $profile['last_name'];
-                $_SESSION['LOGGED_USER']['pseudo'] = $profile['pseudo'];
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mail'], $_POST['password'])) {
+            $_POST[] = null;
 
-                header("Location: compte.php");
-            } else {
-                echo "Échec de la connexion : email ou mot de passe incorrect.";
+            $payload = ['email' => $_POST['mail'], 'password' => $_POST['password']];
+            $jsonPayload = json_encode($payload);
+
+            $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
+                . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/api/auth/login.php';
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+                CURLOPT_POSTFIELDS => $jsonPayload,
+            ]);
+            $response = curl_exec($ch);
+            $curlErr = curl_error($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+
+            if ($response === false) {
+                echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
+                exit();
             }
+
+            $decoded = json_decode($response, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                echo json_encode(['success' => false, 'error' => 'invalid_json_response', 'http_code' => $httpCode, 'raw' => $response]);
+                exit();
+            }
+
+            // Optionally populate session on successful login if the login endpoint returns user/token
+            if (!empty($decoded['success']) && !empty($decoded['user'])) {
+                $user = $decoded['user'];
+                if (!empty($decoded['token'])) {
+                    $_SESSION['token'] = $decoded['token'];
+                }
+            }
+
+            setcookie('token', $decoded['token'] ?? '', time() + 3600, '/', '', false, true);
+
+            echo json_encode($decoded);
+
+            header("Location: compte.php");
+            exit();
         }
+
         ?>
 
 
 
 
         <?php else: 
-        $conn = connect_to_database($host, $username, $password, "cuisine_base");
-        $num_recipes = request_database($conn, "SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . intval($_SESSION['LOGGED_USER']['id']))->fetch_assoc()['count'];
-        $num_likes = request_database($conn, "SELECT COUNT(*) AS count FROM likes WHERE id_author = " . intval($_SESSION['LOGGED_USER']['id']))->fetch_assoc()['count'];
-        $result = request_database($conn, "SELECT beginning FROM profils WHERE id = " . intval($_SESSION['LOGGED_USER']['id']))->fetch_assoc();
-        $beginning = $result['beginning'] ?? date('Y-m-d');
-        $conn->close();
+        $conn = getDatabaseConnection();
+
+        $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["id"]);
+        $num_recipes = $num_recipes->fetch()['count'];
+
+        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["id"]);
+        $num_likes = $num_likes->fetch()['count'];
+
         ?>
         <div class="center-container">
             <div class="info-bloc profil">
-                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['id']); ?>.jpeg');">
+                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($user["id"]); ?>.jpeg');">
                     <div class="add_photo"><div class="add_photo_sub" id="btn-modify-img" style="cursor: pointer;"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
                     <div class="img-modify" id="photo_form">
                         <div class="img-title"><span class="material-symbols-outlined">edit</span> Changer la photo de profil</div>
@@ -223,9 +255,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                 </div>
                 <div class="infos">
                     <div class="pseudo">
-                        <div class="actual"><?php echo htmlspecialchars($_SESSION['LOGGED_USER']['pseudo']); ?></div>
+                        <div class="actual"><?php echo htmlspecialchars($user['pseudo']); ?></div>
                         <form method="POST" style="display:block;">
-                            <input type="text" autocomplete="off" name="pseudo" class="pseudo-input actual" style="display:none; background-color: transparent; outline: none; border: none; border-bottom: 2px solid black; border-radius: 3px" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['pseudo']); ?>">
+                            <input type="text" autocomplete="off" name="pseudo" class="pseudo-input actual" style="display:none; background-color: transparent; outline: none; border: none; border-bottom: 2px solid black; border-radius: 3px" value="<?php echo htmlspecialchars($user['pseudo']); ?>">
                         </form>
                         <div class="modify" style="cursor: pointer;"><span class="material-symbols-outlined">edit</span></div>
                         <script>
@@ -245,7 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                         </script>
                     </div>
                     <div class="min_infos">
-                        <div class="time_membership">Membre depuis <?php echo date('d/m/Y', strtotime($beginning)); ?></div>
+                        <div class="time_membership">Membre depuis <?php echo date('d/m/Y', strtotime($user['beginning'])); ?></div>
                         <div class="point"></div>
                         <div class="number_recipes"><?php if ($num_recipes<2) {echo "$num_recipes recette";} else {echo "$num_recipes recettes";} ?> </div>
                         <div class="point"></div>
@@ -270,23 +302,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                 <div class="info-item">
                     <div class="header">Adresse mail</div>
                     <div class="info-box">
-                        <?php if (!isset($_SESSION['LOGGED_USER']['email'])): ?>
+                        <?php if (!isset($user['email'])): ?>
                         <span class="material-symbols-outlined" style="color: #FF0000">emergency_home</span>
                         <?php endif; ?>
-                        <input autocomplete="off" name="email" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['email']); ?>">
+                        <input autocomplete="off" name="email" type="text" value="<?php echo htmlspecialchars($user['email']); ?>">
                     </div>
                 </div>
                 <div class="personnal-info">
                     <div class="nom">
                         <div class="header">prénom</div>
                         <div class="info-box">
-                            <input autocomplete="off" name="first_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['first_name']); ?>">
+                            <input autocomplete="off" name="first_name" type="text" value="<?php echo htmlspecialchars($user['first_name']); ?>">
                         </div>
                     </div>
                     <div class="nom">
                     <div class="header">nom</div>
                         <div class="info-box">
-                            <input autocomplete="off" name="last_name" type="text" value="<?php echo htmlspecialchars($_SESSION['LOGGED_USER']['last_name']); ?>">
+                            <input autocomplete="off" name="last_name" type="text" value="<?php echo htmlspecialchars($user['last_name']); ?>">
                         </div>
                     </div>
                 </div>
