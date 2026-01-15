@@ -1,7 +1,23 @@
 <?php
 error_reporting(E_ALL);
 ini_set('display_errors',1);
+
+
 session_start();
+
+$user = null;
+$middlewarePath = __DIR__ . '/api/auth/middleware.php';
+if (file_exists($middlewarePath)) {
+    $returned = require_once $middlewarePath;
+    if (is_array($returned) || is_object($returned)) {
+        $user = $returned;
+    }
+}
+
+if (!isset($_SESSION['LOGGED_USER']) && !isset($_SERVER['HTTP_AUTHORIZATION']) && !$user) {
+    header('Location: index.php');
+    exit;
+}
 
 $_SESSION['page'] = 'compte.php';
 

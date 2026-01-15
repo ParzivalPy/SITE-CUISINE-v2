@@ -20,29 +20,55 @@ if (!$secret) {
     exit;
 }
 
-$headers = getallheaders();
+$token = null;
 
-if (!isset($headers['Authorization'])) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Authorization header missing.']);
-    exit;
+$headers = function_exists('getallheaders') ? getallheaders() : [];
+$authHeader = null;
+if (!empty($headers)) {
+    foreach ($headers as $k => $v) {
+        if (strtolower($k) === 'authorization') {
+            $authHeader = $v;
+            break;
+        }
+    }
 }
 
-if (!preg_match('/Bearer\s+(.*)$/', $headers['Authorization'], $matches)) {
-    http_response_code(401);
-    echo json_encode(['error' => 'Invalid Authorization header format.']);
-    exit;
+if (!$authHeader && isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+}
+if (!$authHeader && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
+    $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
 }
 
-$token = $matches[1];
+if (!empty($_COOKIE['token'])) {
+    $token = $_COOKIE['token'];
+}
+
+if (!$token && $authHeader) {
+    if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+        $token = $matches[1];
+    } else {
+        http_response_code(401);
+        echo json_encode(['error' => 'Invalid Authorization header format.']);
+        exit;
+    }
+}
+
+if (!$token) {
+    http_response_code(401);
+    echo json_encode(['error' => 'Authorization token missing.']);
+    exit;
+}
 
 try {
     $decoded = JWT::decode($token, new Key($secret, 'HS256'));
 } catch (Exception $e) {
     http_response_code(401);
-    echo json_encode(['error' => 'Invalid token.']);
+    echo json_encode(['error' => 'Invalid or expired token.', 'message' => $e->getMessage()]);
     exit;
 }
+
+$_SERVER['HTTP_AUTHORIZATION'] = 'Bearer ' . $token;
 
 return $decoded;
 ?>
