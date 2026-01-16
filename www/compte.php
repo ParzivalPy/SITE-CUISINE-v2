@@ -20,22 +20,35 @@ if (isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_COOKIE['token'])) {
         CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => $headers,
     ]);
-    $response = curl_exec($ch);
+    $responseRaw = curl_exec($ch);
     $curlErr = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
-    var_dump($response);
-    print_r($headers);
-    if ($response === false) {
+    if ($responseRaw === false) {
         echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
         exit();
+    }
+
+    $response = json_decode($responseRaw, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        echo json_encode(['success' => false, 'error' => 'invalid_json_response', 'http_code' => $httpCode, 'raw' => $responseRaw]);
+        exit();
+    }
+
+    $db = getDatabaseConnection();
+    $userId = intval($response['user_id'] ?? 0);
+    if ($userId > 0) {
+        // fetch associative only and alias id to user_id so later code can use $user['user_id']
+        $user = $db->query("SELECT id AS user_id, last_name, first_name, pseudo, beginning, email FROM profils WHERE id = " . $userId)->fetch(PDO::FETCH_ASSOC);
+    } else {
+        $user = null;
     }
 }
 
 $haveToConnect = false;
 
-if (!isset($_SERVER['HTTP_AUTHORIZATION'])) {
+if (!isset($_SERVER['HTTP_AUTHORIZATION']) && !isset($_COOKIE['token'])) {
     $haveToConnect = true;
 }
 
@@ -53,15 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
     $pdo = getDatabaseConnection();
     if ($_POST['first_name'] !== $user['first_name']) {
-        $update = $pdo->prepare("UPDATE profils SET first_name = :first_name WHERE id = :id")->execute(['first_name' => $_POST['first_name'] ?? '','id' => $user['id']]);
+        $update = $pdo->prepare("UPDATE profils SET first_name = :first_name WHERE id = :id")->execute(['first_name' => $_POST['first_name'] ?? '','id' => $user["user_id"]]);
         $user['first_name'] = $_POST['first_name'] ?? '';
     }
     if ($_POST['last_name'] !== $user['last_name']) {
-        $update = $pdo->prepare("UPDATE profils SET last_name = :last_name WHERE id = :id")->execute(['last_name' => $_POST['last_name'] ?? '','id' => $user['id']]);
+        $update = $pdo->prepare("UPDATE profils SET last_name = :last_name WHERE id = :id")->execute(['last_name' => $_POST['last_name'] ?? '','id' => $user["user_id"]]);
         $user['last_name'] = $_POST['last_name'] ?? '';
     }
     if ($_POST['email'] !== $user['email']) {
-        $update = $pdo->prepare("UPDATE profils SET email = :email WHERE id = :id")->execute(['email' => $_POST['email'] ?? '','id' => $user['id']]);
+        $update = $pdo->prepare("UPDATE profils SET email = :email WHERE id = :id")->execute(['email' => $_POST['email'] ?? '','id' => $user["user_id"]]);
         $user['email'] = $_POST['email'] ?? '';
     }
     echo "<script>alert('Information updated successfully');</script>";
@@ -72,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pseudo'])) {
     $pdo = getDatabaseConnection();
     if ($_POST['pseudo'] !== $user['pseudo']) {
-        $update = $pdo->prepare("UPDATE profils SET pseudo = :pseudo WHERE id = :id")->execute(['pseudo' => $_POST['pseudo'] ?? '','id' => $user['id']]);
+        $update = $pdo->prepare("UPDATE profils SET pseudo = :pseudo WHERE id = :id")->execute(['pseudo' => $_POST['pseudo'] ?? '','id' => $user["user_id"]]);
         $user['pseudo'] = $_POST['pseudo'] ?? '';
     }
     header("Location: compte.php");
@@ -83,10 +96,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
     $uploadDir = 'assets/img';
     $filename = basename($_FILES['profile_picture']['name']);
     $extension = pathinfo($filename, PATHINFO_EXTENSION);
-    $targetFilePath = $uploadDir . '/' . $user['id'] . '.' . $extension;
+    $targetFilePath = $uploadDir . '/' . $user["user_id"] . '.' . $extension;
     if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetFilePath)) {
         $conn = connect_to_database($host, $username, $password, "cuisine_base");
-        $userId = intval($user["id"]);
+        $userId = intval($user["user_id"]);
         $escapedFilePath = $conn->real_escape_string($targetFilePath);
         $conn->close();
         echo "<script>alert('Image de profil mise à jour avec succès');</script>";
@@ -107,9 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
 
     // TODO : rajouter une condition pour que quand on annule la suppression, ça ne supprime pas le compte
 
-    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user['id']]);
-    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user['id']]);
-    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user['id']]);
+    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user["user_id"]]);
+    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["user_id"]]);
+    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user["user_id"]]);
 
     session_destroy();
     setcookie('token', '', time() - 3600, '/', '', false, true);
@@ -209,8 +222,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
 
             setcookie('token', $decoded['token'] ?? '', time() + 3600, '/', '', false, true);
 
-            echo json_encode($decoded);
-
             header("Location: compte.php");
             exit();
         }
@@ -223,16 +234,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         <?php else: 
         $conn = getDatabaseConnection();
 
-        $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["id"]);
+        $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["user_id"]);
         $num_recipes = $num_recipes->fetch()['count'];
 
-        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["id"]);
+        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["user_id"]);
         $num_likes = $num_likes->fetch()['count'];
 
         ?>
         <div class="center-container">
             <div class="info-bloc profil">
-                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($user["id"]); ?>.jpeg');">
+                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($user["user_id"]); ?>.jpeg');">
                     <div class="add_photo"><div class="add_photo_sub" id="btn-modify-img" style="cursor: pointer;"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
                     <div class="img-modify" id="photo_form">
                         <div class="img-title"><span class="material-symbols-outlined">edit</span> Changer la photo de profil</div>
