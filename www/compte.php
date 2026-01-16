@@ -201,13 +201,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
 
-
             if ($response === false) {
                 echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
                 exit();
             }
 
             $decoded = json_decode($response, true);
+            var_dump($decoded);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 echo json_encode(['success' => false, 'error' => 'invalid_json_response', 'http_code' => $httpCode, 'raw' => $response]);
                 exit();
@@ -243,7 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         ?>
         <div class="center-container">
             <div class="info-bloc profil">
-                <div class="photo" style="background-position: center; background-image: url('assets/img/<?php echo htmlspecialchars($user["user_id"]); ?>.jpeg');">
+                <div class="photo" style="background-size: cover; background-position: center; background-image: url('assets/img/<?php if(file_exists("assets/img/" . htmlspecialchars($user["user_id"]) . ".jpeg")) echo htmlspecialchars($user["user_id"]); else echo "unknown"; ?>.jpeg');">
                     <div class="add_photo"><div class="add_photo_sub" id="btn-modify-img" style="cursor: pointer;"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
                     <div class="img-modify" id="photo_form">
                         <div class="img-title"><span class="material-symbols-outlined">edit</span> Changer la photo de profil</div>

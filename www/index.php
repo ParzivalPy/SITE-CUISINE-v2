@@ -222,7 +222,7 @@ if (isset($_POST['origin'])) {
                             <span class="material-symbols-outlined">arrow_forward</span>Recette
                         </div>
                         <div class="like">
-                            <button><span class="material-symbols-outlined">favorite</span></button>
+                            <span class="material-symbols-outlined">favorite</span>
                             <?php
                             $likes = request_database($conn, "SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = " . intval($recipe['id']));
                             $likeRow = $likes->fetch_assoc();
