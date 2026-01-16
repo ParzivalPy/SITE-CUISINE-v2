@@ -7,12 +7,29 @@ require_once("api/config/database.php");
 session_start();
 
 $user = null;
-$middlewarePath = __DIR__ . '/api/auth/middleware.php';
-if (file_exists($middlewarePath)) {
-    $returned = require_once $middlewarePath;
-    if (is_array($returned) || is_object($returned)) {
-        $pdo = getDatabaseConnection();
-        $user = $pdo->query("SELECT * FROM profils WHERE id = " . intval($returned->user_id))->fetch();
+if (isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_COOKIE['token'])) {
+    $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/middleware.php';
+    $ch = curl_init($url);
+    $headers = [
+        "Content-Type: application/json",
+        "Accept: application/json",
+        "Authorization: " . ($_SERVER['HTTP_AUTHORIZATION'] ?? 'Bearer ' . ($_COOKIE['token'] ?? '')),
+    ];
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => $headers,
+    ]);
+    $response = curl_exec($ch);
+    $curlErr = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    var_dump($response);
+    print_r($headers);
+    if ($response === false) {
+        echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
+        exit();
     }
 }
 
@@ -84,19 +101,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
     $pdo = getDatabaseConnection();
 
-    echo "<script>alert('Votre compte va être supprimé définitivement');</script>";
+    echo "<script>
+    confirm('Votre compte va être supprimé définitivement');
+    </script>";
 
-    $conn = connect_to_database($host, $username, $password, "cuisine_base");
-    $userId = intval($user['id']);
+    // TODO : rajouter une condition pour que quand on annule la suppression, ça ne supprime pas le compte
 
-    request_database($conn, "DELETE FROM recettes WHERE id_author = $userId");
-    request_database($conn, "DELETE FROM likes WHERE id_author = $userId");
-    request_database($conn, "DELETE FROM profils WHERE id = $userId");
-
-    $conn->close();
+    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user['id']]);
+    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user['id']]);
+    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user['id']]);
 
     session_destroy();
-    header("Location: index.php");
+    setcookie('token', '', time() - 3600, '/', '', false, true);
+    header("Location: compte.php");
     exit();
 }
 ?>
@@ -158,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
             $jsonPayload = json_encode($payload);
 
             $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-                . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/api/auth/login.php';
+                . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
@@ -184,10 +201,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
             }
 
             // Optionally populate session on successful login if the login endpoint returns user/token
-            if (!empty($decoded['success']) && !empty($decoded['user'])) {
-                $user = $decoded['user'];
+            if (!empty($decoded['success']) && $decoded['success'] == true && !empty($decoded['token'])) {
                 if (!empty($decoded['token'])) {
-                    $_SESSION['token'] = $decoded['token'];
+                    setcookie('token', $decoded['token'], time() + 3600, '/', '', false, true);
                 }
             }
 
@@ -341,7 +357,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                     <div class="header">Supprimer mon compte</div>
                     <div class="delete-text">Le bouton ci-dessous ouvre un formulaire vous permettant de choisir et de <span>confirmer</span> les détails de <span>suppression de votre compte</span>.</div>
                     <div class="delete-text">La suppression d'un compte est <span>définitive</span>.</div>
-                    <form method="POST">
+                    <form method="POST" id="deleteAccountForm" style="display:inline;">
                         <button name="delete_account" class="delete-button" style="border:none;cursor:pointer;">
                             <span class="material-symbols-outlined">delete</span>
                             <div>Supprimer mon compte</div>

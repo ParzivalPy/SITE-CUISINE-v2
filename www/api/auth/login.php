@@ -5,13 +5,13 @@ declare(strict_types=1);
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../../vendor/autoload.php';
+require_once __DIR__ . '/../../../vendor/autoload.php';
 
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Dotenv\Dotenv;
 
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../../');
+$dotenv = Dotenv::createImmutable(__DIR__ . '/../../../');
 $dotenv->load();
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -56,6 +56,6 @@ $jwt = JWT::encode($payload, $secret, 'HS256');
 
 $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
-echo json_encode(['success' => true, 'token' => $jwt]);
+echo json_encode(['success' => true, 'created_at' => date('Y-m-d H:i:s', time()), 'expire_at' => date('Y-m-d H:i:s', time() + 3600), 'token' => $jwt]);
 
 ?>
