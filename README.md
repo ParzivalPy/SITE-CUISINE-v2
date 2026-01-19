@@ -13,7 +13,7 @@ site-recettes/
 │   ├── footer.php
 │   ├── navbar.php
 │   ├── db.php              # connexion à la base de données
-│   └── fonctions.php       # fonctions PHP utiles (formatage, recherche, etc.)
+│   └── functions.php       # functions PHP utiles (formatage, recherche, etc.)
 │
 ├── assets/
 │   ├── images/

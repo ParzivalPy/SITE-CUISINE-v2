@@ -6,7 +6,7 @@ session_start();
 $_SESSION['page'] = 'index.php';
 
 require_once("includes/secret.php");
-require_once("includes/fonctions.php");
+require_once("includes/functions.php");
 
 // Handle simple toaster action from POST (e.g. like button)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toaster') {

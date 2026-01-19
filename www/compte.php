@@ -8,68 +8,10 @@ session_start();
 
 $haveToConnect = true;
 $user = null;
-
-if (isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_COOKIE['token'])) {
-    $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/middleware.php';
-    $ch = curl_init($url);
-    $token = $_SERVER['HTTP_AUTHORIZATION'] ?? (isset($_COOKIE['token']) ? 'Bearer ' . $_COOKIE['token'] : '');
-    $headers = [
-        'Accept: application/json',
-        'Content-Type: application/json',
-    ];
-    if ($token !== '') {
-        $headers[] = 'Authorization: ' . $token;
-    }
-
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_CONNECTTIMEOUT => 5,
-        CURLOPT_TIMEOUT => 10,
-    ]);
-
-    $responseRaw = curl_exec($ch);
-    $curlErr = curl_error($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($responseRaw === false) {
-        error_log('Erreur cURL lors de la vérification du token : ' . $curlErr);
-        $haveToConnect = true;
-    } else {
-
-        $response = json_decode($responseRaw, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('Réponse JSON invalide du middleware (HTTP ' . intval($httpCode) . ') : ' . $responseRaw);
-            $haveToConnect = true;
-        } else {
-            if (empty($response['user_id'])) {
-                // Non authentifié — efface le cookie et laisse $user null
-                setcookie('token', '', time() - 3600, '/', '', false, true);
-                $user = null;
-            } else {
-        $userId = (int)$response['user_id'];
-        try {
-            $db = getDatabaseConnection();
-            $stmt = $db->prepare('SELECT * FROM profils WHERE id = :id');
-            $stmt->execute(['id' => $userId]);
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$user) {
-                echo 'Aucun profil trouvé pour l\'id : ' . htmlspecialchars((string)$userId);
-                $user = null;
-            }
-        } catch (Exception $e) {
-            echo 'Erreur base de données : ' . htmlspecialchars($e->getMessage());
-            exit();
-        }
-            }
-        }
-
-        $haveToConnect = false;
-    }
-
-    // Do not redirect here — allow the page to continue rendering with $user available.
-}
+include_once("includes/functions.php");
+$result = verify_token();
+$haveToConnect = $result['haveToConnect'];
+$user = $result['user'];
 
 $_SESSION['page'] = 'compte.php';
 
@@ -121,9 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
         $userId = intval($user["id"]);
         $escapedFilePath = $conn->real_escape_string($targetFilePath);
         $conn->close();
-        echo "<script>alert('Image de profil mise à jour avec succès');</script>";
+        echo "<script>alert('Profile picture updated successfully');</script>";
     } else {
-        echo "<script>alert('Erreur lors du téléchargement de l\'image');</script>";
+        echo "<script>alert('Error uploading profile picture');</script>";
     }
     
     header("Location: compte.php");
@@ -134,10 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
     $pdo = getDatabaseConnection();
 
     echo "<script>
-    confirm('Votre compte va être supprimé définitivement');
+    confirm('Your account will be permanently deleted. Are you sure you want to proceed?');
     </script>";
 
-    // TODO : rajouter une condition pour que quand on annule la suppression, ça ne supprime pas le compte
+    // TODO : add confirmation form with password input
 
     $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user["id"]]);
     $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["id"]]);
@@ -201,50 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         <?php
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mail'], $_POST['password'])) {
-            $payload = ['email' => $_POST['mail'], 'password' => $_POST['password']];
-            $json = json_encode($payload);
-
-            $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
-
-            $ch = curl_init($url);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-                CURLOPT_POSTFIELDS => $json,
-                CURLOPT_CONNECTTIMEOUT => 5,
-                CURLOPT_TIMEOUT => 10,
-            ]);
-            $response = curl_exec($ch);
-            $curlErr = curl_error($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($response === false) {
-                error_log("Login cURL error: $curlErr");
-                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Erreur de connexion au serveur d'authentification.</span></div>";
-                
-                exit();
-            }
-
-            $decoded = json_decode($response, true);
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                error_log("Login returned invalid JSON (HTTP $httpCode): $response");
-                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Réponse invalide du serveur d'authentification.</span></div>";
-                exit();
-            }
-
-            if (isset($decoded['error'])) {
-                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Erreur : " . htmlspecialchars($decoded['error']) . "</span></div>";
-            }
-
-            if (!empty($decoded['token'])) {
-                setcookie('token', $decoded['token'], time() + 3600, '/', '', false, true);
-                header("Location: compte.php");
-                exit();
-            }
-
-            
+            connect_to_account();
         }
 
         ?>
