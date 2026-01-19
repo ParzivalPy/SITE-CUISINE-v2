@@ -57,6 +57,7 @@ if (!$token && $authHeader) {
 
 if (!$token) {
     http_response_code(401);
+    echo json_encode(['error' => 'No token provided']);
     return null;
 }
 
@@ -94,7 +95,6 @@ try {
             };
             $hdrJson = $base64url_decode($h);
             $plJson = $base64url_decode($p);
-            $headerClaims = $hdrJson ? json_decode($hdrJson, true) : null;
             $payloadClaims = $plJson ? json_decode($plJson, true) : null;
         }
     }

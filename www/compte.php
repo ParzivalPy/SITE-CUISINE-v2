@@ -6,50 +6,69 @@ require_once("api/config/database.php");
 
 session_start();
 
+$haveToConnect = true;
 $user = null;
+
 if (isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_COOKIE['token'])) {
     $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/middleware.php';
     $ch = curl_init($url);
+    $token = $_SERVER['HTTP_AUTHORIZATION'] ?? (isset($_COOKIE['token']) ? 'Bearer ' . $_COOKIE['token'] : '');
     $headers = [
-        "Content-Type: application/json",
-        "Accept: application/json",
-        "Authorization: " . ($_SERVER['HTTP_AUTHORIZATION'] ?? 'Bearer ' . ($_COOKIE['token'] ?? '')),
+        'Accept: application/json',
+        'Content-Type: application/json',
     ];
+    if ($token !== '') {
+        $headers[] = 'Authorization: ' . $token;
+    }
+
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 10,
     ]);
+
     $responseRaw = curl_exec($ch);
     $curlErr = curl_error($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     if ($responseRaw === false) {
-        echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
-        exit();
-    }
-
-    $response = json_decode($responseRaw, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        echo json_encode(['success' => false, 'error' => 'invalid_json_response', 'http_code' => $httpCode, 'raw' => $responseRaw]);
-        exit();
-    }
-
-    $db = getDatabaseConnection();
-    $userId = intval($response['user_id'] ?? 0);
-    if ($userId > 0) {
-        // fetch associative only and alias id to user_id so later code can use $user['user_id']
-        $user = $db->query("SELECT id AS user_id, last_name, first_name, pseudo, beginning, email FROM profils WHERE id = " . $userId)->fetch(PDO::FETCH_ASSOC);
+        error_log('Erreur cURL lors de la vérification du token : ' . $curlErr);
+        $haveToConnect = true;
     } else {
-        $user = null;
+
+        $response = json_decode($responseRaw, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('Réponse JSON invalide du middleware (HTTP ' . intval($httpCode) . ') : ' . $responseRaw);
+            $haveToConnect = true;
+        } else {
+            if (empty($response['user_id'])) {
+                // Non authentifié — efface le cookie et laisse $user null
+                setcookie('token', '', time() - 3600, '/', '', false, true);
+                $user = null;
+            } else {
+        $userId = (int)$response['user_id'];
+        try {
+            $db = getDatabaseConnection();
+            $stmt = $db->prepare('SELECT * FROM profils WHERE id = :id');
+            $stmt->execute(['id' => $userId]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$user) {
+                echo 'Aucun profil trouvé pour l\'id : ' . htmlspecialchars((string)$userId);
+                $user = null;
+            }
+        } catch (Exception $e) {
+            echo 'Erreur base de données : ' . htmlspecialchars($e->getMessage());
+            exit();
+        }
+            }
+        }
+
+        $haveToConnect = false;
     }
-}
 
-$haveToConnect = false;
-
-if (!isset($_SERVER['HTTP_AUTHORIZATION']) && !isset($_COOKIE['token'])) {
-    $haveToConnect = true;
+    // Do not redirect here — allow the page to continue rendering with $user available.
 }
 
 $_SESSION['page'] = 'compte.php';
@@ -66,15 +85,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
     $pdo = getDatabaseConnection();
     if ($_POST['first_name'] !== $user['first_name']) {
-        $update = $pdo->prepare("UPDATE profils SET first_name = :first_name WHERE id = :id")->execute(['first_name' => $_POST['first_name'] ?? '','id' => $user["user_id"]]);
+        $update = $pdo->prepare("UPDATE profils SET first_name = :first_name WHERE id = :id")->execute(['first_name' => $_POST['first_name'] ?? '','id' => $user["id"]]);
         $user['first_name'] = $_POST['first_name'] ?? '';
     }
     if ($_POST['last_name'] !== $user['last_name']) {
-        $update = $pdo->prepare("UPDATE profils SET last_name = :last_name WHERE id = :id")->execute(['last_name' => $_POST['last_name'] ?? '','id' => $user["user_id"]]);
+        $update = $pdo->prepare("UPDATE profils SET last_name = :last_name WHERE id = :id")->execute(['last_name' => $_POST['last_name'] ?? '','id' => $user["id"]]);
         $user['last_name'] = $_POST['last_name'] ?? '';
     }
     if ($_POST['email'] !== $user['email']) {
-        $update = $pdo->prepare("UPDATE profils SET email = :email WHERE id = :id")->execute(['email' => $_POST['email'] ?? '','id' => $user["user_id"]]);
+        $update = $pdo->prepare("UPDATE profils SET email = :email WHERE id = :id")->execute(['email' => $_POST['email'] ?? '','id' => $user["id"]]);
         $user['email'] = $_POST['email'] ?? '';
     }
     echo "<script>alert('Information updated successfully');</script>";
@@ -85,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_info'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pseudo'])) {
     $pdo = getDatabaseConnection();
     if ($_POST['pseudo'] !== $user['pseudo']) {
-        $update = $pdo->prepare("UPDATE profils SET pseudo = :pseudo WHERE id = :id")->execute(['pseudo' => $_POST['pseudo'] ?? '','id' => $user["user_id"]]);
+        $update = $pdo->prepare("UPDATE profils SET pseudo = :pseudo WHERE id = :id")->execute(['pseudo' => $_POST['pseudo'] ?? '','id' => $user["id"]]);
         $user['pseudo'] = $_POST['pseudo'] ?? '';
     }
     header("Location: compte.php");
@@ -96,10 +115,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
     $uploadDir = 'assets/img';
     $filename = basename($_FILES['profile_picture']['name']);
     $extension = pathinfo($filename, PATHINFO_EXTENSION);
-    $targetFilePath = $uploadDir . '/' . $user["user_id"] . '.' . $extension;
+    $targetFilePath = $uploadDir . '/' . $user["id"] . '.' . $extension;
     if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $targetFilePath)) {
         $conn = connect_to_database($host, $username, $password, "cuisine_base");
-        $userId = intval($user["user_id"]);
+        $userId = intval($user["id"]);
         $escapedFilePath = $conn->real_escape_string($targetFilePath);
         $conn->close();
         echo "<script>alert('Image de profil mise à jour avec succès');</script>";
@@ -120,9 +139,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
 
     // TODO : rajouter une condition pour que quand on annule la suppression, ça ne supprime pas le compte
 
-    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user["user_id"]]);
-    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["user_id"]]);
-    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user["user_id"]]);
+    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user["id"]]);
+    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["id"]]);
+    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user["id"]]);
 
     session_destroy();
     setcookie('token', '', time() - 3600, '/', '', false, true);
@@ -182,19 +201,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         <?php
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mail'], $_POST['password'])) {
-            $_POST[] = null;
-
             $payload = ['email' => $_POST['mail'], 'password' => $_POST['password']];
-            $jsonPayload = json_encode($payload);
+            $json = json_encode($payload);
 
-            $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
-                . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
+            $url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
+
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST => true,
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-                CURLOPT_POSTFIELDS => $jsonPayload,
+                CURLOPT_POSTFIELDS => $json,
+                CURLOPT_CONNECTTIMEOUT => 5,
+                CURLOPT_TIMEOUT => 10,
             ]);
             $response = curl_exec($ch);
             $curlErr = curl_error($ch);
@@ -202,28 +221,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
             curl_close($ch);
 
             if ($response === false) {
-                echo json_encode(['success' => false, 'error' => 'curl_error', 'message' => $curlErr]);
+                error_log("Login cURL error: $curlErr");
+                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Erreur de connexion au serveur d'authentification.</span></div>";
+                
                 exit();
             }
 
             $decoded = json_decode($response, true);
-            var_dump($decoded);
             if (json_last_error() !== JSON_ERROR_NONE) {
-                echo json_encode(['success' => false, 'error' => 'invalid_json_response', 'http_code' => $httpCode, 'raw' => $response]);
+                error_log("Login returned invalid JSON (HTTP $httpCode): $response");
+                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Réponse invalide du serveur d'authentification.</span></div>";
                 exit();
             }
 
-            // Optionally populate session on successful login if the login endpoint returns user/token
-            if (!empty($decoded['success']) && $decoded['success'] == true && !empty($decoded['token'])) {
-                if (!empty($decoded['token'])) {
-                    setcookie('token', $decoded['token'], time() + 3600, '/', '', false, true);
-                }
+            if (isset($decoded['error'])) {
+                echo "<div style=\"max-width: 600px\" class=\"error-message\"><span class=\"material-symbols-outlined\">error</span><span>Erreur : " . htmlspecialchars($decoded['error']) . "</span></div>";
             }
 
-            setcookie('token', $decoded['token'] ?? '', time() + 3600, '/', '', false, true);
+            if (!empty($decoded['token'])) {
+                setcookie('token', $decoded['token'], time() + 3600, '/', '', false, true);
+                header("Location: compte.php");
+                exit();
+            }
 
-            header("Location: compte.php");
-            exit();
+            
         }
 
         ?>
@@ -234,16 +255,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         <?php else: 
         $conn = getDatabaseConnection();
 
-        $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["user_id"]);
+        $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["id"]);
         $num_recipes = $num_recipes->fetch()['count'];
 
-        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["user_id"]);
+        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["id"]);
         $num_likes = $num_likes->fetch()['count'];
 
         ?>
         <div class="center-container">
             <div class="info-bloc profil">
-                <div class="photo" style="background-size: cover; background-position: center; background-image: url('assets/img/<?php if(file_exists("assets/img/" . htmlspecialchars($user["user_id"]) . ".jpeg")) echo htmlspecialchars($user["user_id"]); else echo "unknown"; ?>.jpeg');">
+                <div class="photo" style="background-size: cover; background-position: center; background-image: url('assets/img/<?php if(file_exists("assets/img/" . htmlspecialchars($user["id"]) . ".jpeg")) echo htmlspecialchars($user["id"]); else echo "unknown"; ?>.jpeg');">
                     <div class="add_photo"><div class="add_photo_sub" id="btn-modify-img" style="cursor: pointer;"><span class="material-symbols-outlined">add_photo_alternate</span></div></div>
                     <div class="img-modify" id="photo_form">
                         <div class="img-title"><span class="material-symbols-outlined">edit</span> Changer la photo de profil</div>

@@ -1,3 +1,22 @@
+/* GENERL */
+
+.error-message {
+    background-color: #CF2D30;
+    color: #FFFFFF;
+    padding: 15px;
+    gap: 10px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 10px;
+}
+
 /* NAVBAR */
 
 * {

@@ -9,6 +9,12 @@
     align-self: stretch;
 }
 
+input {
+    width: 100%;
+    outline: #000000;
+    outline-offset: -2px;
+}
+
 .center-container {
     display: flex;
     flex-direction: column;
