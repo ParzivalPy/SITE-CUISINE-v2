@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
         $num_recipes = $conn->query("SELECT COUNT(*) AS count FROM recettes WHERE id_author = " . $user["id"]);
         $num_recipes = $num_recipes->fetch()['count'];
 
-        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_author = " . $user["id"]);
+        $num_likes = $conn->query("SELECT COUNT(*) AS count FROM likes WHERE id_user = " . $user["id"]);
         $num_likes = $num_likes->fetch()['count'];
 
         ?>

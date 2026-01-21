@@ -7,6 +7,13 @@ $_SESSION['page'] = 'index.php';
 
 require_once("includes/secret.php");
 require_once("includes/functions.php");
+require_once("api/config/database.php");
+
+$haveToConnect = true;
+$user = null;
+$result = verify_token();
+$haveToConnect = $result['haveToConnect'];
+$user = $result['user'];
 
 // Handle simple toaster action from POST (e.g. like button)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'toaster') {
@@ -69,17 +76,26 @@ if (isset($_POST['origin'])) {
 <body>
     <?php
     include_once("includes/navbar.php");
-    include_once("includes/db.php");
 
     $search = isset($_GET['search']) ? $_GET['search'] : '';
-    $conn = connect_to_database($host, $username, $password, "cuisine_base");
-    $request = "SELECT r.*, p.pseudo AS author_pseudo FROM recettes r LEFT JOIN profils p ON r.id_author = p.id WHERE r.title LIKE '%" . $conn->real_escape_string($search) . "%'";
-    if (isset($_GET['origin']) && !empty($_GET['origin'])) {
-        $origin = $conn->real_escape_string($_GET['origin']);
-        $request .= " AND r.origin = '" . $origin . "'";
+    $conn = getDatabaseConnection();
+    // Use PDO prepared statements to avoid non-existing real_escape_string and prevent SQL injection
+    $sql = "SELECT r.*, p.pseudo AS author_pseudo FROM recettes r LEFT JOIN profils p ON r.id_author = p.id WHERE 1=1";
+    $params = [];
+
+    if ($search !== '') {
+        $sql .= " AND r.title LIKE :search";
+        $params[':search'] = '%' . $search . '%';
     }
-    $recipesResult = request_database($conn, $request);
-    $recipes = $recipesResult->fetch_all(MYSQLI_ASSOC);
+
+    if (isset($_GET['origin']) && !empty($_GET['origin'])) {
+        $sql .= " AND r.origin = :origin";
+        $params[':origin'] = $_GET['origin'];
+    }
+
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+    $recipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
     <div class="menu">
         <div class="header">
@@ -222,10 +238,26 @@ if (isset($_POST['origin'])) {
                             <span class="material-symbols-outlined">arrow_forward</span>Recette
                         </div>
                         <div class="like">
-                            <span class="material-symbols-outlined">favorite</span>
                             <?php
-                            $likes = request_database($conn, "SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = " . intval($recipe['id']));
-                            $likeRow = $likes->fetch_assoc();
+                            $db = getDatabaseConnection();
+                            if (isset($user['id'])) {
+                                $stmtNumLikes = $db->prepare("SELECT COUNT(*) AS count FROM likes WHERE id_user = :user AND id_recipe = :recipe");
+                                $stmtNumLikes->execute([
+                                    ':user' => $user['id'],
+                                    ':recipe' => $recipe['id']
+                                ]);
+                                $num_likes = (int) $stmtNumLikes->fetchColumn();
+                            }
+                            
+                            if (isset($num_likes) && $num_likes > 0) {
+                                echo '<span class="material-symbols-outlined filled" style="color: #ff0000;">favorite</span>';
+                            } else {
+                                echo '<span class="material-symbols-outlined"> favorite</span>';
+                            }
+                            
+                            // Use PDO prepared statement to fetch the like count
+                            $stmtLikes = $db->query('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ' . intval($recipe['id']));
+                            $likeRow = $stmtLikes->fetch(PDO::FETCH_ASSOC);
                             echo intval($likeRow['like_count'] ?? 0);
                             ?>
                         </div>
