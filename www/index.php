@@ -57,6 +57,39 @@ if (isset($_POST['origin'])) {
     $queryString = http_build_query($queryParams);
     header("Location: index.php" . (!empty($queryString) ? "?" . $queryString : ""));
     exit();
+} else if (isset($_POST['action']) && $_POST['action'] == 'like') {
+    $id_recette = intval($_POST['id_recipe']);
+    $db = getDatabaseConnection();
+    $stmt = $db->prepare('SELECT * FROM likes WHERE id_user = :id_user AND id_recipe = :id_recipe');
+    $stmt->execute(['id_recipe'=> $id_recette, 'id_user' => $user['id']]);
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($stmt->rowCount() > 0) {
+        $stmt2 = $db->prepare('DELETE FROM likes WHERE id_recipe = :result AND id_user = :user');
+        $stmt2->execute(['result'=> $id_recette, 'user' => $user['id']]);
+        $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $_SESSION['toast'] = [
+            'message' => 'Like retiré pour la recette #' . $id_recette,
+            'type' => 'info'
+        ];
+    } else {
+        $stmt = $db->prepare('INSERT INTO likes (id_recipe, id_user) VALUES (:id_recipe, :id_user)');
+        $stmt->execute([
+            ':id_recipe' => $id_recette,
+            ':id_user' => $user['id']
+        ]);
+        $_SESSION['toast'] = [
+            'message' => 'Like enregistré pour la recette #' . $id_recette,
+            'type' => 'success'
+        ];
+    }
+
+    // Post/Redirect/Get to prevent form re-execution on refresh
+    $redirectUrl = $_SERVER['PHP_SELF'];
+    if (!empty($_SERVER['QUERY_STRING'])) {
+        $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
+    }
+    header('Location: ' . $redirectUrl);
+    exit();
 }
 ?>
 
@@ -248,13 +281,15 @@ if (isset($_POST['origin'])) {
                                 ]);
                                 $num_likes = (int) $stmtNumLikes->fetchColumn();
                             }
-                            
-                            if (isset($num_likes) && $num_likes > 0) {
-                                echo '<span class="material-symbols-outlined filled" style="color: #ff0000;">favorite</span>';
-                            } else {
-                                echo '<span class="material-symbols-outlined"> favorite</span>';
-                            }
-                            
+                            ?>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="like">
+                                <input type="hidden" name="id_recipe" value="<?php echo intval($recipe['id']); ?>">
+                                <button type="submit" style="color: #000000; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;" <?= !isset($user) ? "disabled" : "" ?>>
+                                    <span class="material-symbols-outlined <?= (isset($num_likes) && $num_likes > 0) ? 'filled" style="color: #ff0000;' : ''?>">favorite</span>
+                                </button>
+                            </form>
+                            <?php
                             // Use PDO prepared statement to fetch the like count
                             $stmtLikes = $db->query('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ' . intval($recipe['id']));
                             $likeRow = $stmtLikes->fetch(PDO::FETCH_ASSOC);

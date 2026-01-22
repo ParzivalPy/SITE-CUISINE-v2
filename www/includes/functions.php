@@ -1,7 +1,10 @@
 <?php
 
-$url_middleware = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/api/auth/middleware.php';
-$url_login = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/api/auth/login.php';
+$url_middleware = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/middleware.php';
+$url_login = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
+// TODO : Update the URL according to the environment
+//* dev : /SITE-CUISINE-v2/www/api/auth/middleware.php
+//* prod : /api/auth/middleware.php
 
 function toaster($message, $type = 'info') {
     $jsMessage = json_encode($message);
@@ -21,9 +24,6 @@ function verify_token(): array
     if (isset($_SERVER['HTTP_AUTHORIZATION']) || isset($_COOKIE['token'])) {
         global $url_middleware;
         $url = $url_middleware;
-        // TODO : Update the URL according to the environment
-        //* dev : /SITE-CUISINE-v2/www/api/auth/middleware.php
-        //* prod : /api/auth/middleware.php
         $ch = curl_init($url);
         $token = $_SERVER['HTTP_AUTHORIZATION'] ?? (isset($_COOKIE['token']) ? 'Bearer ' . $_COOKIE['token'] : '');
         $headers = [
@@ -62,7 +62,7 @@ function verify_token(): array
                     $userId = (int)$response['user_id'];
                     try {
                         $db = getDatabaseConnection();
-                        $stmt = $db->prepare('SELECT * FROM profils WHERE id = :id');
+                        $stmt = $db->prepare('SELECT id, last_name, first_name, pseudo, beginning, email FROM profils WHERE id = :id');
                         $stmt->execute(['id' => $userId]);
                         $user = $stmt->fetch(PDO::FETCH_ASSOC);
                         if (!$user) {
