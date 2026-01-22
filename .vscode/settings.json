@@ -7,5 +7,22 @@
         "RETURNTRANSFER",
         "profils",
         "recettes"
+    ],
+    "sqltools.connections": [
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3306,
+            "driver": "MariaDB",
+            "name": "cuisine",
+            "database": "cuisine_base",
+            "username": "cuisine",
+            "password": "4SOpq6IU2Ke3L7"
+        }
     ]
 }
