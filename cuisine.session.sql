@@ -1,0 +1,1 @@
+SELECT count(*) as count FROM likes WHERE id_recipe = 2 AND id_user = 16;

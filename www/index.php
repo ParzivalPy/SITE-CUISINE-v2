@@ -265,9 +265,14 @@ if (isset($_POST['origin'])) {
                         <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo htmlspecialchars(strtolower($recipe['origin'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo htmlspecialchars($pays[$recipe['origin']] ?? 'Inconnue', ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <div class="buttons">
-                        <div class="button-recipe">
-                            <span class="material-symbols-outlined">arrow_forward</span>Recette
-                        </div>
+                        <form action="recette.php" method="GET">
+                            <div class="button-recipe">
+                                <input type="text" name="id_recipe" value="<?= $recipe['id'] ?? "" ?>" hidden>
+                                <button type="submit" class="button" style="border: none; margin: 0; padding; 0">
+                                    <span class="material-symbols-outlined">arrow_forward</span>Recette
+                                </button>
+                            </div>
+                        </form>
                         <div class="like">
                             <?php
                             $db = getDatabaseConnection();

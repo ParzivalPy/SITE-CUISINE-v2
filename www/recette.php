@@ -1,8 +1,17 @@
 <?php
+// error_reporting(E_ALL);
+// ini_set('display_errors',1);
+
 session_start();
 
 require_once("includes/functions.php");
 require_once("api/config/database.php");
+require_once("includes/countries.php");
+
+$haveToConnect = true;
+$user = null;
+$result = verify_token();
+$user = $result['user'];
 
 $_SESSION["page"] = "index.php";
 
@@ -17,16 +26,112 @@ if (!isset($_GET['id_recipe'])) {
     exit();
 }
 
-function scrap_recipe() {
+$recipe = null;
+$author = null;
+
+function scrap_recipe(): void {
+    global $recipe;
     $db = getDatabaseConnection();
     $stmt = $db->query('SELECT * FROM recettes WHERE id = ' . $_GET['id_recipe']);
     if ($stmt->rowCount() == 0) {
-        return ['success' => false,'message'=> 'No recipe finded'];
+        header('Location: index.php');
+        exit();
     }
     $recipe = $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
+function scrap_author(): void {
+    global $recipe, $author;
+    $db = getDatabaseConnection();
+    $stmt = $db->query("SELECT pseudo FROM profils WHERE id = " . $recipe["id_author"]);
+    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $author = $result["pseudo"];
+}
+
+function difficulty(): string {
+    global $recipe;
+    $result = "";
+    $difficulty = $recipe["difficulty"];
+    if ($difficulty == 1) {
+        $result = "Facile";
+    } else if ($difficulty == 2) {
+        $result = "Moyenne";
+    } else if ($difficulty == 3) {
+        $result = "Difficile";
+    } else {
+        $result = "Inconnue";
+    }
+    return "Difficulté : " . $result;
+}
+
+function convert_time($min): string {
+    $days = intdiv($min, 1440);
+    $min = $min % 1440;
+    $hours = intdiv($min, 60);
+    $minutes = $min % 60;
+
+    $result = '';
+    if ($days > 0) {
+        $result .= "{$days}d ";
+    }
+    if ($hours > 0) {
+        $result .= "{$hours}h ";
+    }
+    if ($minutes > 0) {
+        $result .= "{$minutes}min ";
+    }
+    return trim($result);
+}
+
+function getLike(): bool {
+    global $user;
+    $db = getDatabaseConnection();
+    $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ? AND id_user = ?');
+    $stmtLikes->execute([$_GET["id_recipe"], $user["id"]]);
+    $like = $stmtLikes->fetch(PDO::FETCH_ASSOC);
+    if ($like["like_count"] == 0) {
+        return false;
+    }
+    return true;
+}
+
 scrap_recipe();
+scrap_author();
+
+if (isset($_POST['action']) && $_POST['action'] == 'like') {
+    $id_recette = intval($_POST['id_recipe']);
+    $db = getDatabaseConnection();
+    $stmt = $db->prepare('SELECT * FROM likes WHERE id_user = :id_user AND id_recipe = :id_recipe');
+    $stmt->execute(['id_recipe'=> $id_recette, 'id_user' => $user['id']]);
+    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($stmt->rowCount() > 0) {
+        $stmt2 = $db->prepare('DELETE FROM likes WHERE id_recipe = :result AND id_user = :user');
+        $stmt2->execute(['result'=> $id_recette, 'user' => $user['id']]);
+        $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+        $_SESSION['toast'] = [
+            'message' => 'Like retiré pour la recette #' . $id_recette,
+            'type' => 'info'
+        ];
+    } else {
+        $stmt = $db->prepare('INSERT INTO likes (id_recipe, id_user) VALUES (:id_recipe, :id_user)');
+        $stmt->execute([
+            ':id_recipe' => $id_recette,
+            ':id_user' => $user['id']
+        ]);
+        $_SESSION['toast'] = [
+            'message' => 'Like enregistré pour la recette #' . $id_recette,
+            'type' => 'success'
+        ];
+    }
+
+    // Post/Redirect/Get to prevent form re-execution on refresh
+    $redirectUrl = $_SERVER['PHP_SELF'];
+    if (!empty($_SERVER['QUERY_STRING'])) {
+        $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
+    }
+    header('Location: ' . $redirectUrl);
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -34,7 +139,7 @@ scrap_recipe();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $recipe["title"] ?></title>
+    <title><?= isset($recipe) ? $recipe["title"] : "Information Manquante" ?></title>
     <link rel="stylesheet" href="assets/css/nav-foo.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,29 +157,29 @@ scrap_recipe();
                     <div class="info-1">
                         <div>
                             <div class="titre-et-sous-titre">
-                                <h1>L'Incroyable Cookie</h1>
-                                <h4>Recette par <span>Titilapierre</span></h4>
+                                <h1><?= isset($recipe) ? $recipe["title"] : "Information Manquante" ?></h1>
+                                <h4>Recette par <span><?= $author ?></span></h4>
                             </div>
                         </div>
                     </div>
                     <div class="info-2">
                         <h6>DESCRIPTION</h6>
-                        <p>Des cookies dorés à l’extérieur et moelleux à l’intérieur, délicatement parfumés à la vanille et généreusement garnis de pépites de chocolat. Une recette simple et rapide pour un moment gourmand à partager (ou pas).</p>
+                        <p><?= isset($recipe) ? $recipe["description"] : "Information Manquante" ?></p>
                     </div>
                     <div class="info-3">
                         <div class="col">
                             <div>
                                 <div class="bubble">
                                     <span class="material-symbols-outlined">stockpot</span>
-                                    <p>Dessert</p>
+                                    <p><?= isset($recipe) ? $recipe["category"] : "Information Manquante" ?></p>
                                 </div>
                                 <div class="bubble">
                                     <span class="material-symbols-outlined">sentiment_very_satisfied</span>
-                                    <p>Difficulté : Facile</p>
+                                    <p><?= difficulty(); ?></p>
                                 </div>
                                 <div class="bubble">
-                                    <span class="material-symbols-outlined"><img src="https://kapowaz.github.io/square-flags/flags/it.svg" alt="" width="18px" alt="?" style="border-radius: 3px; display: flex; align-items: center; justify-content: center;"></span>
-                                    <p>Italie</p>
+                                    <span class="material-symbols-outlined"><img src="https://kapowaz.github.io/square-flags/flags/<?= htmlspecialchars(strtolower($recipe["origin"] ?? "")) ?>.svg" alt="" width="18px" alt="?" style="border-radius: 3px; display: flex; align-items: center; justify-content: center;"></span>
+                                    <p><?= isset($recipe) ? $pays[$recipe["origin"]] : "Information Manquante"; ?></p>
                                 </div>
                             </div>
                         </div>
@@ -82,24 +187,30 @@ scrap_recipe();
                             <div>
                                 <div class="bubble">
                                     <span class="material-symbols-outlined">groups</span>
-                                    <p>6 Personnes</p>
+                                    <p><?= $recipe["people_num"] ?? "" ?> Personnes</p>
                                 </div>
                                 <div class="bubble">
                                     <span class="material-symbols-outlined">countertops</span>
-                                    <p>Préparation : 15 min</p>
+                                    <p>Préparation : <?= isset($recipe) ? convert_time($recipe["prep_time"]) : "Information Manquante" ?></p>
                                 </div>
                                 <div class="bubble">
                                     <span class="material-symbols-outlined">oven_gen</span>
-                                    <p>Cuisson : 10 min</p>
+                                    <p>Cuisson : <?= isset($recipe) ? convert_time($recipe["baking_time"]) : "Information Manquante" ?></p>
                                 </div>
                             </div>
                         </div>
                         <div class="col">
                             <div style="gap: 10px;">
-                                <div class="button">
-                                    <span class="material-symbols-outlined">favorite</span>
-                                    <p>Ajouter aux Favoris</p>
-                                </div>
+                                <form method="POST" action="">
+                                    <input type="hidden" name="action" value="like">
+                                    <input type="hidden" name="id_recipe" value="<?= htmlspecialchars($_GET['id_recipe'] ?? '') ?>">
+                                    <button type="submit" class="button" style="border: none; margin: 0; padding; 0">
+                                        <span class="material-symbols-outlined <?= getLike() ? 'filled' : '' ?>" style="color: <?= getLike() ? '#ff0000' : '#000' ?>;">
+                                            favorite
+                                        </span>
+                                        <p><?= getLike() ? 'Retirer des Favoris' : 'Ajouter aux Favoris' ?></p>
+                                    </button>
+                                </form>
                                 <div class="button">
                                     <span class="material-symbols-outlined">picture_as_pdf</span>
                                     <p>Exporter en PDF</p>
