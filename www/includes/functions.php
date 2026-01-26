@@ -1,18 +1,60 @@
 <?php
 
+use Dom\Document;
+
 $url_middleware = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/middleware.php';
 $url_login = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . '/SITE-CUISINE-v2/www/api/auth/login.php';
 // TODO : Update the URL according to the environment
 //* dev : /SITE-CUISINE-v2/www/api/auth/middleware.php
 //* prod : /api/auth/middleware.php
 
-function toaster($message, $type = 'info') {
+function toaster($title, $message, $type = 'info', $time = 5) {
     $jsMessage = json_encode($message);
-    echo "<script>
-        (function(){
-            const msg = " . $jsMessage . ";
-            alert(msg);
-        })();
+    echo "
+    <script>
+    (function () {
+        const run = () => {
+            const containerId = 'toaster-list';
+            let list = document.getElementById(containerId);
+            if (!list) {
+                list = document.createElement('div');
+                list.id = containerId;
+                list.className = 'toaster-list';
+                document.body.appendChild(list);
+            }
+
+            const box = document.createElement('div');
+            box.className = 'toaster-box " . $type . " show';
+            box.innerHTML = \"<h4>" . htmlspecialchars($title, ENT_QUOTES) . "</h4><p>" . htmlspecialchars($message, ENT_QUOTES) . "</p>\";
+            list.appendChild(box);
+
+            setTimeout(() => {
+                box.classList.remove('show');
+                box.classList.add('hide');
+                setTimeout(() => {
+                    const siblings = Array.from(list.children).filter(el => el !== box);
+                    const first = new Map();
+                    siblings.forEach(el => first.set(el, el.getBoundingClientRect()));
+                    if (box.parentNode === list) list.removeChild(box);
+                    const last = new Map();
+                    siblings.forEach(el => last.set(el, el.getBoundingClientRect()));
+                    siblings.forEach(el => {
+                        const f = first.get(el);
+                        const l = last.get(el);
+                        const deltaY = f.top - l.top;
+                        if (deltaY) {
+                            el.style.transform = `translateY(deltaY px)`;
+                            el.getBoundingClientRect(); // force reflow
+                            el.style.transform = '';
+                        }
+                    });
+                }, 400);
+            }," . ($time * 1000) . ");
+        };
+
+        if (document.body) run();
+        else window.addEventListener('DOMContentLoaded', run, { once: true });
+    })();
     </script>";
 }
 

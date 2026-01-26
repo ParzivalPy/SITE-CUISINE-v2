@@ -1,5 +1,8 @@
 <?php
 
+// error_reporting(E_ALL);
+// ini_set('display_errors',1);
+
 require_once("api/config/database.php");
 
 session_start();
@@ -13,7 +16,8 @@ $user = $result['user'];
 
 $_SESSION['page'] = 'compte.php';
 
-include_once("includes/db.php");
+$deleteError = null;
+$showDeleteConfirm = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
     session_destroy();
@@ -71,22 +75,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['profile_picture']) &
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
+    // Première étape : afficher le formulaire de confirmation
+    $showDeleteConfirm = true;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_delete'])) {
     $pdo = getDatabaseConnection();
+    $passwordInput = $_POST['password_confirm'] ?? '';
 
-    echo "<script>
-    confirm('Your account will be permanently deleted. Are you sure you want to proceed?');
-    </script>";
+    // Récupérer le hash du user
+    $stmt = $pdo->prepare("SELECT password FROM profils WHERE id = :id");
+    $stmt->execute(['id' => $user["id"]]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // TODO : add confirmation form with password input
+    if (!$row || !password_verify($passwordInput, $row['password'])) {
+        $deleteError = "Mot de passe incorrect.";
+        $showDeleteConfirm = true;
+    } else {
+        // Supprimer d'abord les likes liés
+        $pdo->prepare("DELETE FROM likes WHERE id_user = :id")->execute(['id' => $user["id"]]);
+        $pdo->prepare("DELETE FROM likes WHERE id_recipe IN (SELECT id FROM recettes WHERE id_author = :id)")->execute(['id' => $user["id"]]);
+        // Supprimer les recettes de l'auteur
+        $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["id"]]);
+        // Supprimer le profil
+        $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user["id"]]);
 
-    $pdo->prepare("DELETE FROM likes WHERE id_author = :id")->execute(['id' => $user["id"]]);
-    $pdo->prepare("DELETE FROM recettes WHERE id_author = :id")->execute(['id' => $user["id"]]);
-    $pdo->prepare("DELETE FROM profils WHERE id = :id")->execute(['id' => $user["id"]]);
-
-    session_destroy();
-    setcookie('token', '', time() - 3600, '/', '', false, true);
-    header("Location: compte.php");
-    exit();
+        session_destroy();
+        setcookie('token', '', time() - 3600, '/', '', false, true);
+        header("Location: compte.php");
+        exit();
+    }
 }
 ?>
 
@@ -102,6 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+    <link rel="shortcut icon" href="assets/img/icon.png" type="image/png">
 </head>
 <body>
     <?php
@@ -294,6 +313,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_account'])) {
                     </form>
                 </div>
             </div>
+
+            <?php if ($showDeleteConfirm): ?>
+            <div class="delete-confirmation">
+                <div class="confirmation-message">
+                    <div class="header">Confirmation de la suppression</div>
+                    <div class="body">
+                        <div class="warning">Attention : cette action est irréversible !</div>
+                        <?php if ($deleteError): ?>
+                        <div class="error"><?php echo $deleteError; ?></div>
+                        <?php endif; ?>
+                        <form method="POST" class="confirm-delete-form">
+                            <div class="info-item">
+                                <label class="header" for="password_confirm">Mot de passe</label>
+                                <div class="info-box">
+                                    <span class="material-symbols-outlined">lock</span>
+                                    <input type="password" id="password_confirm" name="password_confirm" value="">
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button type="submit" name="confirm_delete" class="confirm-button" style="border:none;cursor:pointer;">
+                                    <span class="material-symbols-outlined">check</span>
+                                    <div>Confirmer la suppression</div>
+                                </button>
+                                <button type="button" class="cancel-button" style="border:none;cursor:pointer;" onclick="document.querySelector('.delete-confirmation').style.display='none';">
+                                    <span class="material-symbols-outlined">close</span>
+                                    <div>Annuler</div>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
         </div>
         <?php endif; ?>
     </div>

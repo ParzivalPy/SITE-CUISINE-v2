@@ -19,16 +19,15 @@ $first_name = trim($input['first_name']);
 $pseudo = trim($input['pseudo']);
 $beginning = trim($input['beginning']);
 if (is_numeric($beginning)) {
-    $ts = (int) $beginning;
-    // if timestamp is in milliseconds convert to seconds
+    $ts = (int)$beginning;
     if (strlen($beginning) > 10) {
-        $ts = (int) floor($ts / 1000);
+        $ts = (int)floor($ts / 1000); // ms -> s
     }
-    $beginning = date('Y-m-d H:i:s', $ts);
+    $beginning = gmdate('Y-m-d H:i:s', $ts);
 } else {
     try {
-        $dt = new DateTime($beginning);
-        $beginning = $dt->format('Y-m-d H:i:s');
+        $dt = new DateTimeImmutable($beginning); // <-- manquait
+        $beginning = $dt->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode(['success' => false, 'message' => 'Invalid beginning date format.']);
@@ -50,7 +49,7 @@ if (strlen($password) < 8) {
     exit;
 }
 
-// TODO: pk ca marche pas ?
+// TODO: pk la date de création du compte n'est pas la bonne
 
 $pdo = getDatabaseConnection();
 
@@ -65,14 +64,15 @@ if ($stmt->fetch()) {
 
 $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
-$stmt = $pdo->prepare('INSERT INTO profils (last_name, first_name, pseudo, beginning, email, password) VALUES (:last_name, :first_name, :pseudo, :beginning, :email, :password)');
+$stmt = $pdo->prepare('INSERT INTO profils (last_name, first_name, pseudo, beginning, email, password) 
+                       VALUES (:last_name, :first_name, :pseudo, :beginning, :email, :password)');
 $stmt->execute([
-    'last_name' => $last_name,
+    'last_name'  => $last_name,
     'first_name' => $first_name,
-    'pseudo' => $pseudo,
-    'beginning' => $beginning,
-    'email' => $email,
-    'password' => $hashedPassword
+    'pseudo'     => $pseudo,
+    'beginning'  => $beginning,
+    'email'      => $email,
+    'password'   => $hashedPassword,
 ]);
 
 http_response_code(201);

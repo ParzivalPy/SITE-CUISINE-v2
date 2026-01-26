@@ -3,9 +3,9 @@ session_start();
 
 $_SESSION['page'] = 'index.php';
 
-require_once("includes/secret.php");
 require_once("includes/functions.php");
 require_once("api/config/database.php");
+require_once("includes/countries.php");
 
 $haveToConnect = true;
 $user = null;
@@ -103,6 +103,8 @@ if (isset($_POST['origin'])) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" />
+    <script src="assets/js/index.js" defer></script>
+    <link rel="shortcut icon" href="assets/img/icon.png" type="image/png">
 </head>
 <body>
     <?php
@@ -145,85 +147,133 @@ if (isset($_POST['origin'])) {
         </div>
         <div class="filters-zone">
             <div class="filters">
-                <div class="filter">
+                <label class="filter">
                     <p>Type</p>
-                    <span class="material-symbols-outlined">keyboard_arrow_down</span>
-                    <input type="checkbox" class="filter-checkbox" id="filter-type-checkbox">
-                </div>
-                <div class="filter">
+                    <span class="material-symbols-outlined" id="arrow-type">keyboard_arrow_down</span>
+                    <input type="checkbox" class="filter-checkbox" id="filter-type-checkbox" hidden>
+                </label>
+                <label class="filter">
                     <p>Temps de préparation</p>
-                    <span class="material-symbols-outlined">keyboard_arrow_down</span>
-                    <input type="checkbox" class="filter-checkbox" id="filter-prep-time-checkbox">
-                </div>
-                <div class="filter">
+                    <span class="material-symbols-outlined" id="arrow-prep">keyboard_arrow_down</span>
+                    <input type="checkbox" class="filter-checkbox" id="filter-prep-time-checkbox" hidden>
+                </label>
+                <label class="filter">
                     <p>Origine</p>
-                    <span class="material-symbols-outlined">keyboard_arrow_down</span>
-                </div>
+                    <span class="material-symbols-outlined" id="arrow-origin">keyboard_arrow_down</span>
+                    <input type="checkbox" class="filter-checkbox" id="filter-origin-checkbox" hidden>
+                </label>
             </div>
-
-            <div class="filter-extend" id="filter-type-extend" style="display: none;">
-                <div class="filter-title">Filtrer par Origine</div>
-                    <form action="index.php" method="post" id="origin-filter-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
-                        <div class="research-origins">
-                            <span class="material-symbols-outlined">search</span>
-                            <input id="origin-input" placeholder="Chercher une origine" list="origin" name="origin" value="">
-                            <datalist id="origin">
+            <div class="filter-extends" style="display: flex; align-items: center; justify-content: center;">
+                <div class="filter-extend" id="filter-type-extend" style="display: none;">
+                    <div class="filter-title">Filtrer par Origine</div>
+                        <form action="index.php" method="post" id="origin-filter-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                            <div class="research-origins">
+                                <span class="material-symbols-outlined">search</span>
+                                <input id="origin-input" placeholder="Chercher une origine" list="origin" name="origin" value="">
+                                <datalist id="origin">
+                                    <?php
+                                    include_once("includes/secret.php");
+                                    
+                                    foreach ($pays as $code => $label):
+                                        $selected = (isset($_GET['origin']) && $_GET['origin'] === $code) ? 'selected' : '';
+                                        echo '<option>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
+                                    endforeach;
+                                    ?>
+                                </datalist>
+                            </div>
+                            <div class="proposed-origins categories" style="display: none;">
                                 <?php
-                                include_once("includes/secret.php");
-                                
-                                foreach ($pays as $code => $label):
-                                    $selected = (isset($_GET['origin']) && $_GET['origin'] === $code) ? 'selected' : '';
-                                    echo '<option>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
-                                endforeach;
+                                if (isset($_POST['origins-wanted'])):
+                                    foreach ($_POST['origins-wanted'] as $originCode):
+                                        echo "<script>add_origin_tag(" . json_encode($originCode) . ");</script>";
+                                    endforeach;
+                                endif;
                                 ?>
-                            </datalist>
-                        </div>
-                        <div class="proposed-origins categories" style="display: none;">
-                            <?php
-                            if (isset($_POST['origins-wanted'])):
-                                foreach ($_POST['origins-wanted'] as $originCode):
-                                    echo "<script>add_origin_tag(" . json_encode($originCode) . ");</script>";
-                                endforeach;
-                            endif;
-                            ?>
-                        </div>
-                        <div class="filter-buttons">
-                            <div class="clear-button" id="clear-origin-filter" style="cursor: pointer;" onclick="window.location.href='index.php';">
-                                <span class="material-symbols-outlined">filter_alt_off</span>Supprimer
                             </div>
-                            <div class="apply-button" id="apply-origin-filter" style="cursor: pointer;" onclick="this.closest('form').submit();">
-                                <span class="material-symbols-outlined">check</span>Valider
+                            <div class="filter-buttons">
+                                <div class="clear-button" id="clear-origin-filter" style="cursor: pointer;" onclick="window.location.href='index.php';">
+                                    <span class="material-symbols-outlined">filter_alt_off</span>Supprimer
+                                </div>
+                                <div class="apply-button" id="apply-origin-filter" style="cursor: pointer;" onclick="this.closest('form').submit();">
+                                    <span class="material-symbols-outlined">check</span>Valider
+                                </div>
                             </div>
+                        </form>
+                    </div>
+                <div class="filter-extend" id="filter-prep-time-extend" style="display: none;">
+                    <div class="filter-title">Filtrer par Origine</div>
+                        <form action="index.php" method="post" id="origin-filter-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                            <div class="research-origins">
+                                <span class="material-symbols-outlined">search</span>
+                                <input id="origin-input" placeholder="Chercher une origine" list="origin" name="origin" value="">
+                                <datalist id="origin">
+                                    <?php
+                                    include_once("includes/secret.php");
+                                    
+                                    foreach ($pays as $code => $label):
+                                        $selected = (isset($_GET['origin']) && $_GET['origin'] === $code) ? 'selected' : '';
+                                        echo '<option>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
+                                    endforeach;
+                                    ?>
+                                </datalist>
+                            </div>
+                            <div class="proposed-origins categories" style="display: none;">
+                                <?php
+                                if (isset($_POST['origins-wanted'])):
+                                    foreach ($_POST['origins-wanted'] as $originCode):
+                                        echo "<script>add_origin_tag(" . json_encode($originCode) . ");</script>";
+                                    endforeach;
+                                endif;
+                                ?>
+                            </div>
+                            <div class="filter-buttons">
+                                <div class="clear-button" id="clear-origin-filter" style="cursor: pointer;" onclick="window.location.href='index.php';">
+                                    <span class="material-symbols-outlined">filter_alt_off</span>Supprimer
+                                </div>
+                                <div class="apply-button" id="apply-origin-filter" style="cursor: pointer;" onclick="this.closest('form').submit();">
+                                    <span class="material-symbols-outlined">check</span>Valider
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="filter-extend" id="filter-origin-extend" style="display: none;">
+                        <div class="filter-title">Filtrer par Origine</div>
+                            <form action="index.php" method="post" id="origin-filter-form" style="width: 100%; display: flex; flex-direction: column; gap: 15px;">
+                                <div class="research-origins">
+                                    <span class="material-symbols-outlined">search</span>
+                                    <input id="origin-input" placeholder="Chercher une origine" list="origin" name="origin" value="">
+                                    <datalist id="origin">
+                                        <?php
+                                        include_once("includes/secret.php");
+                                        
+                                        foreach ($pays as $code => $label):
+                                            $selected = (isset($_GET['origin']) && $_GET['origin'] === $code) ? 'selected' : '';
+                                            echo '<option>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
+                                        endforeach;
+                                        ?>
+                                    </datalist>
+                                </div>
+                                <div class="proposed-origins categories" style="display: none;">
+                                    <?php
+                                    if (isset($_POST['origins-wanted'])):
+                                        foreach ($_POST['origins-wanted'] as $originCode):
+                                            echo "<script>add_origin_tag(" . json_encode($originCode) . ");</script>";
+                                        endforeach;
+                                    endif;
+                                    ?>
+                                </div>
+                                <div class="filter-buttons">
+                                    <div class="clear-button" id="clear-origin-filter" style="cursor: pointer;" onclick="window.location.href='index.php';">
+                                        <span class="material-symbols-outlined">filter_alt_off</span>Supprimer
+                                    </div>
+                                    <div class="apply-button" id="apply-origin-filter" style="cursor: pointer;" onclick="this.closest('form').submit();">
+                                        <span class="material-symbols-outlined">check</span>Valider
+                                    </div>
+                                </div>
+                            </form>
                         </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
-            <div class="filter-extend" id="filter-prep-time-extend" style="display: none;">
-                <div class="filter-title">Filtrer par Origine</div>
-                    <div class="research-origins">
-                        <span class="material-symbols-outlined">search</span>
-                        <input id="origin-input" placeholder="Chercher une origine" list="origin" name="origin" value="<?php echo isset($_GET['origin']) ? htmlspecialchars($_GET['origin'], ENT_QUOTES, 'UTF-8') : ''; ?>" multiple>
-                        <datalist id="origin">
-                            <?php
-                            include_once("includes/secret.php");
-                            
-                            foreach ($pays as $code => $label):
-                                $selected = (isset($_GET['origin']) && $_GET['origin'] === $code) ? 'selected' : '';
-                                echo '<option>' . htmlspecialchars($label, ENT_QUOTES) . '</option>';
-                            endforeach;
-                            ?>
-                        </datalist>
-                    </div>
-                    <div class="proposed-origins">
-                    </div>
-                    <div class="filter-buttons">
-                        <div class="clear-button">
-                            <span class="material-symbols-outlined">filter_alt_off</span>Supprimer
-                        </div>
-                        <div class="apply-button">
-                            <span class="material-symbols-outlined">check</span>Valider
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -262,13 +312,13 @@ if (isset($_POST['origin'])) {
                                     echo "Inconnue";
                             }
                             ?></p></div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo htmlspecialchars(strtolower($recipe['origin'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo htmlspecialchars($pays[$recipe['origin']] ?? 'Inconnue', ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo htmlspecialchars(strtolower($recipe['origin'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo htmlspecialchars($pays[$recipe["origin"]] ?? "Inconnue", ENT_QUOTES, 'UTF-8'); ?></div>
                     </div>
                     <div class="buttons">
                         <form action="recette.php" method="GET">
-                            <div class="button-recipe">
+                            <div class="button-recipe" style=" cursor: pointer;">
                                 <input type="text" name="id_recipe" value="<?= $recipe['id'] ?? "" ?>" hidden>
-                                <button type="submit" class="button" style="border: none; margin: 0; padding; 0">
+                                <button type="submit" class="button" style="border: none; margin: 0; padding; 0; cursor: pointer;">
                                     <span class="material-symbols-outlined">arrow_forward</span>Recette
                                 </button>
                             </div>
@@ -294,7 +344,8 @@ if (isset($_POST['origin'])) {
                             </form>
                             <?php
                             // Use PDO prepared statement to fetch the like count
-                            $stmtLikes = $db->query('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ' . intval($recipe['id']));
+                            $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = :recipe_id');
+                            $stmtLikes->execute([':recipe_id' => intval($recipe['id'])]);
                             $likeRow = $stmtLikes->fetch(PDO::FETCH_ASSOC);
                             echo intval($likeRow['like_count'] ?? 0);
                             ?>
@@ -312,102 +363,25 @@ if (isset($_POST['origin'])) {
 
     <?php
     include_once("includes/footer.php");
+
+    // Afficher le toast après redirection
+    if (!empty($_SESSION['toast'])) {
+        $t = $_SESSION['toast'];
+        toaster($t['title'] ?? 'Info', $t['message'] ?? '', $t['type'] ?? 'info', $t['time'] ?? 5);
+        unset($_SESSION['toast']);
+    }
     ?>
 
     <script>
+        window.paysLabels = <?php echo json_encode(array_values($pays), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        window.paysMap = <?php echo json_encode(array_flip($pays), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
         <?php 
         if (isset($_POST['origins-wanted'])) {
-            $originsSearched = json_encode($_POST['origins-wanted'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
-            echo "let originsSearched = " . $originsSearched . ";";
+            echo "window.originsWanted = " . json_encode($_POST['origins-wanted'], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ";";
         } else {
-            echo "let originsSearched = [];";
+            echo "window.originsWanted = [];";
         }
-        echo "console.log('originsSearched:', originsSearched);";
         ?>
-
-        const _ftc = document.getElementById('filter-type-checkbox');
-        const filterExtend = document.getElementById('filter-type-extend');
-
-        if (_ftc && filterExtend) {
-            _ftc.addEventListener('change', function() {
-                filterExtend.style.display = _ftc.checked ? 'flex' : 'none';
-            });
-        }
-
-        const paysLabels = <?php echo json_encode(array_values($pays), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        const paysMap = <?php echo json_encode(array_flip($pays), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        const input = document.getElementById('origin-input');
-        const proposed = document.querySelector('.proposed-origins');
-
-        function escapeHtml(str){
-            return str.replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; });
-        }
-
-        if (input) {
-            input.addEventListener('input', function(){
-            if (this.value != "") {
-                this.placeholder = "";
-            } else {
-                this.placeholder = "Chercher une origine";
-            }
-            
-            const val = this.value.trim();
-            if (val !== '' && paysLabels.indexOf(paysMap[val]) !== -1) {
-                if (proposed) {
-                proposed.style.display = 'flex';
-                }
-
-                const originsWanted = <?php echo json_encode($_POST['origins-wanted'] ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-                const codeForVal = paysMap[val] || val;
-
-                if (originsWanted.indexOf(val) !== -1 || originsWanted.indexOf(codeForVal) !== -1) {
-                console.log('Origine déjà présente dans $_POST[\"origins-wanted\"]');
-                return;
-                } else {
-                
-                //create the origin country tag
-                let div = document.createElement('div');
-                div.className = 'proposed-origin-item categorie';
-                div.style.cursor = 'pointer';
-
-                let img = document.createElement('img');
-                const code = paysMap[val] ? paysMap[val].toLowerCase() : '';
-                img.src = 'https://kapowaz.github.io/square-flags/flags/' + code + '.svg';
-                
-                img.className = 'img';
-                img.width = 20;
-                img.alt = '?';
-                img.style = 'border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;';
-                div.appendChild(img);
-
-                let span = document.createElement('span');
-                span.textContent = val;
-
-                //add tag to html
-                div.appendChild(span);
-                proposed.appendChild(div);
-
-                originsWanted.push(codeForVal);
-                console.log('Updated originsWanted:', originsWanted);
-
-                document.getElementById('origin-filter-form').reset();
-                }
-
-                
-            }
-            });
-        }
-
-        // optional: click on proposed item fills input (and keeps it visible)
-        if (proposed) {
-            proposed.addEventListener('click', function(e){
-                const item = e.target.closest('.proposed-origin-item');
-                if (item && input) {
-                    input.value = item.textContent;
-                    proposed.style.display = 'flex';
-                }
-            });
-        }
     </script>
 </body>
 </html>

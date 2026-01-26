@@ -85,52 +85,70 @@ function convert_time($min): string {
 
 function getLike(): bool {
     global $user;
-    $db = getDatabaseConnection();
-    $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ? AND id_user = ?');
-    $stmtLikes->execute([$_GET["id_recipe"], $user["id"]]);
-    $like = $stmtLikes->fetch(PDO::FETCH_ASSOC);
-    if ($like["like_count"] == 0) {
+    if (!$user || !isset($user['id'])) {
         return false;
+    } else {
+        $db = getDatabaseConnection();
+        $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = ? AND id_user = ?');
+        $stmtLikes->execute([$_GET["id_recipe"], $user["id"]]);
+        $like = $stmtLikes->fetch(PDO::FETCH_ASSOC);
+        if ($like["like_count"] == 0) {
+            return false;
+        }
+        return true;
     }
-    return true;
+}
+
+if (isset($_POST['action']) && $_POST['action'] == 'like') {
+    if (!isset($user['id'])) {
+        toaster("Vous n'êtes pas connecté !", "Veuillez vous connecter afin de mettre des recettes en favoris.", "error", 7);
+    } else {
+        $id_recette = intval($_POST['id_recipe']);
+        $db = getDatabaseConnection();
+        $stmt = $db->prepare('SELECT * FROM likes WHERE id_user = :id_user AND id_recipe = :id_recipe');
+        $stmt->execute(['id_recipe'=> $id_recette, 'id_user' => $user['id']]);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if ($stmt->rowCount() > 0) {
+            $stmt2 = $db->prepare('DELETE FROM likes WHERE id_recipe = :result AND id_user = :user');
+            $stmt2->execute(['result'=> $id_recette, 'user' => $user['id']]);
+            $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+            $_SESSION['toast'] = [
+                'message' => 'Like retiré pour la recette #' . $id_recette,
+                'type' => 'info'
+            ];
+        } else {
+            $stmt = $db->prepare('INSERT INTO likes (id_recipe, id_user) VALUES (:id_recipe, :id_user)');
+            $stmt->execute([
+                ':id_recipe' => $id_recette,
+                ':id_user' => $user['id']
+            ]);
+            $_SESSION['toast'] = [
+                'message' => 'Like enregistré pour la recette #' . $id_recette,
+                'type' => 'success'
+            ];
+        }
+        $redirectUrl = $_SERVER['PHP_SELF'];
+        if (!empty($_SERVER['QUERY_STRING'])) {
+            $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
+        }
+        header('Location: ' . $redirectUrl);
+        exit();
+    }
+    
+}
+
+if (isset($_POST['action'])) {
+    unset($_POST['action']);
 }
 
 scrap_recipe();
 scrap_author();
 
-if (isset($_POST['action']) && $_POST['action'] == 'like') {
-    $id_recette = intval($_POST['id_recipe']);
-    $db = getDatabaseConnection();
-    $stmt = $db->prepare('SELECT * FROM likes WHERE id_user = :id_user AND id_recipe = :id_recipe');
-    $stmt->execute(['id_recipe'=> $id_recette, 'id_user' => $user['id']]);
-    $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if ($stmt->rowCount() > 0) {
-        $stmt2 = $db->prepare('DELETE FROM likes WHERE id_recipe = :result AND id_user = :user');
-        $stmt2->execute(['result'=> $id_recette, 'user' => $user['id']]);
-        $result2 = $stmt2->fetch(PDO::FETCH_ASSOC);
-        $_SESSION['toast'] = [
-            'message' => 'Like retiré pour la recette #' . $id_recette,
-            'type' => 'info'
-        ];
-    } else {
-        $stmt = $db->prepare('INSERT INTO likes (id_recipe, id_user) VALUES (:id_recipe, :id_user)');
-        $stmt->execute([
-            ':id_recipe' => $id_recette,
-            ':id_user' => $user['id']
-        ]);
-        $_SESSION['toast'] = [
-            'message' => 'Like enregistré pour la recette #' . $id_recette,
-            'type' => 'success'
-        ];
-    }
-
-    // Post/Redirect/Get to prevent form re-execution on refresh
-    $redirectUrl = $_SERVER['PHP_SELF'];
-    if (!empty($_SERVER['QUERY_STRING'])) {
-        $redirectUrl .= '?' . $_SERVER['QUERY_STRING'];
-    }
-    header('Location: ' . $redirectUrl);
-    exit();
+// Afficher le toast après redirection
+if (!empty($_SESSION['toast'])) {
+    $t = $_SESSION['toast'];
+    toaster($t['title'] ?? 'Info', $t['message'] ?? '', $t['type'] ?? 'info', $t['time'] ?? 5);
+    unset($_SESSION['toast']);
 }
 ?>
 
@@ -146,6 +164,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'like') {
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:FILL@0..1" />
     <link rel="stylesheet" href="assets/css/recette.css">
+    <link rel="shortcut icon" href="assets/img/icon.png" type="image/png">
 </head>
 <body>
     <?php include_once("includes/navbar.php"); ?>
@@ -178,7 +197,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'like') {
                                     <p><?= difficulty(); ?></p>
                                 </div>
                                 <div class="bubble">
-                                    <span class="material-symbols-outlined"><img src="https://kapowaz.github.io/square-flags/flags/<?= htmlspecialchars(strtolower($recipe["origin"] ?? "")) ?>.svg" alt="" width="18px" alt="?" style="border-radius: 3px; display: flex; align-items: center; justify-content: center;"></span>
+                                    <span class="material-symbols-outlined"><img src="https://kapowaz.github.io/square-flags/flags/<?= htmlspecialchars(strtolower($recipe["origin"] ?? "")) ?>.svg" width="18px" alt="?" style="border-radius: 3px; display: flex; align-items: center; justify-content: center;"></span>
                                     <p><?= isset($recipe) ? $pays[$recipe["origin"]] : "Information Manquante"; ?></p>
                                 </div>
                             </div>
@@ -215,6 +234,7 @@ if (isset($_POST['action']) && $_POST['action'] == 'like') {
                                     <span class="material-symbols-outlined">picture_as_pdf</span>
                                     <p>Exporter en PDF</p>
                                 </div>
+                                <!-- // TODO: Trouver une moyen d'exporter la page OU son contenu en pdf -->
                             </div>
                         </div>
                     </div>
@@ -228,38 +248,17 @@ if (isset($_POST['action']) && $_POST['action'] == 'like') {
                     </div>
                     <div class="separateur"></div>
                     <div class="liste">
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>1 oeuf</p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>85 g de sucre </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>85 g de beurre doux </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>150 g de farine </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>100 g de pépites de chocolat </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>1 sachet de sucre vanillé </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>1 càc de levure chimique </p>
-                        </div>
-                        <div class="liste-element">
-                            <span class="material-symbols-outlined">circle</span>
-                            <p>1/2 càc de sel</p>
-                        </div>
+                        <?php
+                        $ingr = isset($recipe["ingredients"])  ? explode("<li>", $recipe["ingredients"]) : "";
+                        foreach ($ingr as $ingredient) {
+                            if (!empty($ingredient)) {
+                                echo '<div class="liste-element">';
+                                echo '<span class="material-symbols-outlined">circle</span>';
+                                echo '<p>' . htmlspecialchars($ingredient) . '</p>';
+                                echo '</div>';
+                            }
+                        }
+                        ?>
                     </div>
                 </div>
                 <div class="part2-2">
@@ -269,30 +268,19 @@ if (isset($_POST['action']) && $_POST['action'] == 'like') {
                     </div>
                     <div class="separateur"></div>
                     <div class="liste">
-                        <div class="liste-element">
-                            <p class="enumeration">1.</p>
-                            <p>Laisser ramollir le beurre à température ambiante. Dans un saladier, le malaxer avec le sucre.</p>
-                        </div>
-                        <div class="liste-element">
-                            <p class="enumeration">2.</p>
-                            <p>Ajouter l'oeuf et éventuellement le sucre vanillé.</p>
-                        </div>
-                        <div class="liste-element">
-                            <p class="enumeration">3.</p>
-                            <p>Verser progressivement la farine, la levure chimique, le sel, et les pépites de chocolat. Bien mélanger.</p>
-                        </div>
-                        <div class="liste-element">
-                            <p class="enumeration">4.</p>
-                            <p>Beurrer une plaque allant au four ou la recouvrir d'une plaque de  silicone. À l'aide de deux cuillères à soupe ou simplement avec les  mains, former des noix de pâte en les espaçant car elles s'étaleront à  la cuisson. </p>
-                        </div>
-                        <div class="liste-element">
-                            <p class="enumeration">5.</p>
-                            <p>Faire cuire 8 à 10 minutes à 180°C soit thermostat.</p>
-                        </div>
-                        <div class="liste-element">
-                            <p class="enumeration">6.</p>
-                            <p>Il faut les sortir dès que les contours commencent à brunir.</p>
-                        </div>
+                        <?php
+                        $steps = isset($recipe["instructions"]) ? explode("<li>", $recipe["instructions"]) : "";
+                        $count = 1;
+                        foreach ($steps as $step) {
+                            if (!empty($ingredient)) {
+                                echo '<div class="liste-element">';
+                                echo '<p class="enumeration">' . $count . '</p>';
+                                echo '<p>' . htmlspecialchars($step) . '</p>';
+                                echo '</div>';
+                            }
+                            $count++;
+                        }
+                        ?>
                     </div>
                 </div>
             </div>

@@ -181,3 +181,72 @@ footer .design_dedicate {
     font-weight: 300;
     line-height: normal;
 }
+
+/* -------------------------------- 
+               TOASTER
+    --------------------------------*/
+
+.toaster-list {
+    position: fixed;
+    bottom: 10px;
+    right: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    margin-right: 20px;
+    width: 100%;
+    align-items: end;
+}
+
+.toaster-box {
+    position: sticky;
+    margin-bottom: 10px;
+    padding: 10px 30px;
+    border-radius: 7px;
+    width: 100%;
+    max-width: 400px;
+}
+
+.toaster-box.error {
+    color: #900000;
+    border: solid #900000 2px;
+    background-color: #ff4e4e;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        visibility: visible;
+    }
+    to {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+@keyframes fade-out {
+    from {
+        opacity: 1;
+        visibility: visible;
+    }
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.toaster-box {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s, visibility 0.4s;
+    pointer-events: none;
+}
+
+.toaster-box.show {
+    animation: fade-in 0.4s forwards;
+    pointer-events: auto;
+}
+
+.toaster-box.hide {
+    animation: fade-out 0.4s forwards;
+    pointer-events: none;
+}
