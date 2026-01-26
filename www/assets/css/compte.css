@@ -1,12 +1,13 @@
 .body {
     display: flex;
     width: 100%;
-    padding: 41px 0 0 0;
+    padding: 41px 24px 0;
     flex-direction: column;
     align-items: center;
     gap: 50px;
     background: var(--Light, #E7E7E7);
     align-self: stretch;
+    box-sizing: border-box;
 }
 
 input {
@@ -20,6 +21,12 @@ input {
     flex-direction: column;
     gap: 50px;
     align-items: center;
+    width: min(960px, 100%);
+}
+
+.info-bloc {
+    width: min(960px, 100%);
+    box-sizing: border-box;
 }
 
 .profil {
@@ -199,6 +206,7 @@ input {
     align-self: stretch;
     border-radius: var(--Large-Radius, 15px);
     background: var(--White, #FFF);
+    box-sizing: border-box;
 }
 
 .private-info .zone-name {
