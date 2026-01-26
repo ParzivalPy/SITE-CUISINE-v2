@@ -7,7 +7,7 @@ declare(strict_types=1);
 // prod : mysql-cuisine.alwaysdata.net
 
 $config = [
-    'host' => 'mysql-cuisine.alwaysdata.net',
+    'host' => 'localhost',
     'username' => 'cuisine',
     'password' => '4SOpq6IU2Ke3L7',
     'database' => 'cuisine_base',

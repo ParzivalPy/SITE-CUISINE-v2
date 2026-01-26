@@ -292,64 +292,62 @@ if (isset($_POST['origin'])) {
                     </div>
                     <div class="time"><?php echo intval($recipe['prep_time']); ?>'</div>
                 </div>
-                <div class="down">
-                    <div class="categories">
-                        <div class="categorie"><span class="material-symbols-outlined">stockpot</span><p><?php echo htmlspecialchars($recipe['category'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p></div>
-                        <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span><p>Difficulté : 
-                            <?php 
-                            $diff = $recipe['difficulty']; 
-                            switch ($diff) {
-                                case 1:
-                                    echo "Facile";
-                                    break;
-                                case 2:
-                                    echo "Moyenne";
-                                    break;
-                                case 3:
-                                    echo "Difficile";
-                                    break;
-                                default:
-                                    echo "Inconnue";
-                            }
-                            ?></p></div>
-                        <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo htmlspecialchars(strtolower($recipe['origin'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo htmlspecialchars($pays[$recipe["origin"]] ?? "Inconnue", ENT_QUOTES, 'UTF-8'); ?></div>
-                    </div>
-                    <div class="buttons">
-                        <form action="recette.php" method="GET">
-                            <div class="button-recipe" style=" cursor: pointer;">
-                                <input type="text" name="id_recipe" value="<?= $recipe['id'] ?? "" ?>" hidden>
-                                <button type="submit" class="button" style="border: none; margin: 0; padding; 0; cursor: pointer;">
-                                    <span class="material-symbols-outlined">arrow_forward</span>Recette
-                                </button>
-                            </div>
-                        </form>
-                        <div class="like">
-                            <?php
-                            $db = getDatabaseConnection();
-                            if (isset($user['id'])) {
-                                $stmtNumLikes = $db->prepare("SELECT COUNT(*) AS count FROM likes WHERE id_user = :user AND id_recipe = :recipe");
-                                $stmtNumLikes->execute([
-                                    ':user' => $user['id'],
-                                    ':recipe' => $recipe['id']
-                                ]);
-                                $num_likes = (int) $stmtNumLikes->fetchColumn();
-                            }
-                            ?>
-                            <form method="POST">
-                                <input type="hidden" name="action" value="like">
-                                <input type="hidden" name="id_recipe" value="<?php echo intval($recipe['id']); ?>">
-                                <button type="submit" style="color: #000000; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;" <?= !isset($user) ? "disabled" : "" ?>>
-                                    <span class="material-symbols-outlined <?= (isset($num_likes) && $num_likes > 0) ? 'filled" style="color: #ff0000;' : ''?>">favorite</span>
-                                </button>
-                            </form>
-                            <?php
-                            // Use PDO prepared statement to fetch the like count
-                            $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = :recipe_id');
-                            $stmtLikes->execute([':recipe_id' => intval($recipe['id'])]);
-                            $likeRow = $stmtLikes->fetch(PDO::FETCH_ASSOC);
-                            echo intval($likeRow['like_count'] ?? 0);
-                            ?>
+                <div class="categories">
+                    <div class="categorie"><span class="material-symbols-outlined">stockpot</span><p><?php echo htmlspecialchars($recipe['category'] ?? '', ENT_QUOTES, 'UTF-8'); ?></p></div>
+                    <div class="categorie"><span class="material-symbols-outlined">sentiment_very_satisfied</span><p>Difficulté : 
+                        <?php 
+                        $diff = $recipe['difficulty']; 
+                        switch ($diff) {
+                            case 1:
+                                echo "Facile";
+                                break;
+                            case 2:
+                                echo "Moyenne";
+                                break;
+                            case 3:
+                                echo "Difficile";
+                                break;
+                            default:
+                                echo "Inconnue";
+                        }
+                        ?></p></div>
+                    <div class="categorie"><img src="https://kapowaz.github.io/square-flags/flags/<?php echo htmlspecialchars(strtolower($recipe['origin'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>.svg" width="20" alt="?" style="border-radius: 3px; margin: 2px; display: flex; align-items: center; justify-content: center;"/><?php echo htmlspecialchars($pays[$recipe["origin"]] ?? "Inconnue", ENT_QUOTES, 'UTF-8'); ?></div>
+                </div>
+                <div class="buttons">
+                    <form action="recette.php" method="GET">
+                        <div class="button-recipe" style=" cursor: pointer;">
+                            <input type="text" name="id_recipe" value="<?= $recipe['id'] ?? "" ?>" hidden>
+                            <button type="submit" class="button" style="border: none; margin: 0; padding; 0; cursor: pointer;">
+                                <span class="material-symbols-outlined">arrow_forward</span>Recette
+                            </button>
                         </div>
+                    </form>
+                    <div class="like">
+                        <?php
+                        $db = getDatabaseConnection();
+                        if (isset($user['id'])) {
+                            $stmtNumLikes = $db->prepare("SELECT COUNT(*) AS count FROM likes WHERE id_user = :user AND id_recipe = :recipe");
+                            $stmtNumLikes->execute([
+                                ':user' => $user['id'],
+                                ':recipe' => $recipe['id']
+                            ]);
+                            $num_likes = (int) $stmtNumLikes->fetchColumn();
+                        }
+                        ?>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="like">
+                            <input type="hidden" name="id_recipe" value="<?php echo intval($recipe['id']); ?>">
+                            <button type="submit" style="color: #000000; background: none; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center;" <?= !isset($user) ? "disabled" : "" ?>>
+                                <span class="material-symbols-outlined <?= (isset($num_likes) && $num_likes > 0) ? 'filled" style="color: #ff0000;' : ''?>">favorite</span>
+                            </button>
+                        </form>
+                        <?php
+                        // Use PDO prepared statement to fetch the like count
+                        $stmtLikes = $db->prepare('SELECT COUNT(*) AS like_count FROM likes WHERE id_recipe = :recipe_id');
+                        $stmtLikes->execute([':recipe_id' => intval($recipe['id'])]);
+                        $likeRow = $stmtLikes->fetch(PDO::FETCH_ASSOC);
+                        echo intval($likeRow['like_count'] ?? 0);
+                        ?>
                     </div>
                 </div>
             </div>

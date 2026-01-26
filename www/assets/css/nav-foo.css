@@ -92,6 +92,9 @@ navbar ul .navbar-menu-button-img > span {
     height: 24px;
     aspect-ratio: 1/1;
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* FOOTER */
@@ -249,4 +252,118 @@ footer .design_dedicate {
 .toaster-box.hide {
     animation: fade-out 0.4s forwards;
     pointer-events: none;
+}
+
+/* -------------------------------- 
+          RESPONSIVE
+    --------------------------------*/
+
+/* Tablettes et petits écrans */
+@media (max-width: 768px) {
+    navbar ul {
+        gap: 15px;
+    }
+    
+    navbar ul .navbar-menu-button {
+        font-size: 14px;
+    }
+    
+    footer .container {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 35px;
+    }
+    
+    footer .container > * {
+        width: 45%;
+        min-width: 180px;
+    }
+}
+
+/* Mobiles */
+@media (max-width: 480px) {
+    body {
+        padding: 20px 0 0 0;
+        gap: 30px;
+    }
+    
+    navbar {
+        padding: 10px;
+        border-radius: 15px;
+        width: 95%;
+    }
+    
+    navbar ul {
+        gap: 10px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    navbar ul .navbar-point {
+        display: none;
+    }
+    
+    navbar ul .navbar-menu-button {
+        font-size: 12px;
+        gap: 5px;
+    }
+    
+    navbar ul .navbar-menu-button-img {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    navbar ul .navbar-menu-button-img > span {
+        font-size: 20px;
+    }
+    
+    footer {
+        padding: 25px 10px;
+        gap: 20px;
+    }
+    
+    footer .container {
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
+    }
+    
+    footer .container > * {
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    footer .navigation {
+        align-items: center;
+    }
+    
+    footer .navigation .content {
+        justify-content: center;
+        text-align: center;
+    }
+    
+    footer .about {
+        align-items: center;
+    }
+    
+    footer .about > .content {
+        text-align: center;
+    }
+    
+    footer .design_dedicate {
+        text-align: center;
+    }
+    
+    .toaster-list {
+        margin-right: 10px;
+        margin-left: 10px;
+    }
+    
+    .toaster-box {
+        max-width: 100%;
+        padding: 10px 15px;
+    }
 }
