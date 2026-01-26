@@ -207,6 +207,7 @@ input {
     border-radius: var(--Large-Radius, 15px);
     background: var(--White, #FFF);
     box-sizing: border-box;
+    margin: auto;
 }
 
 .private-info .zone-name {
